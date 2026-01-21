@@ -17,7 +17,7 @@ import in.scalive.votezy.service.ElectionResultService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/election-result")
+@RequestMapping("/api/election-results")
 @CrossOrigin(origins = "https://nagarpiyush602.github.io")
 public class ElectionResultController {
 	private ElectionResultService electionResultService;

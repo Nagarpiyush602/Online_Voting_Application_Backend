@@ -20,7 +20,7 @@ import in.scalive.votezy.service.CandidateService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/candidate")
+@RequestMapping("/api/candidates")
 @CrossOrigin(origins = "https://nagarpiyush602.github.io")
 public class CandidateController {
 	private CandidateService candidateService;
