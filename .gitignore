@@ -1,0 +1,13 @@
+# Ignore Spring Boot properties
+src/main/resources/application.properties
+
+# Maven target folder
+target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
