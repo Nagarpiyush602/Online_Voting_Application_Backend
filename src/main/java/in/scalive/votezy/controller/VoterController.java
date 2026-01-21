@@ -20,7 +20,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/voters")
-@CrossOrigin
+@CrossOrigin(origins = "https://nagarpiyush602.github.io")
 public class VoterController {
 	private VoterService voterService;
 
