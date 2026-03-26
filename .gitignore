@@ -1,5 +1,5 @@
-# Ignore Spring Boot properties
-src/main/resources/application.properties
+# Environment file (local secrets)
+.env
 
 # Maven target folder
 target/

@@ -21,7 +21,11 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/candidates")
+<<<<<<< HEAD
 @CrossOrigin
+=======
+@CrossOrigin(origins = "https://nagarpiyush602.github.io")
+>>>>>>> 2fa4dfcace18c4c621ea845887c4d95ed16855c6
 public class CandidateController {
 	private CandidateService candidateService;
 
