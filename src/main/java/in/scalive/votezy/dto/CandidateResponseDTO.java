@@ -1,0 +1,5 @@
+package in.scalive.votezy.dto;
+
+public class CandidateResponseDTO {
+
+}
