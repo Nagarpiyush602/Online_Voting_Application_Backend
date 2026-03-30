@@ -2,9 +2,10 @@ package in.scalive.votezy.service;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.VoterRequestDTO;
+import in.scalive.votezy.dto.VoterResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.entity.Voter;
@@ -22,35 +23,39 @@ public class VoterService {
 		this.voterRepository = voterRepository;
 		this.candidateRepository = candidateRepository;
 	}
-	public Voter registerVoter(Voter voter) {
-		if(voterRepository.existsByEmail(voter.getEmail())) {
-			throw new DuplicateResourceException("voter with email id"+voter.getEmail()+" already exists"); 
+	public VoterResponseDTO registerVoter(VoterRequestDTO dto) {
+		if(voterRepository.existsByEmail(dto.getEmail())) {
+			throw new DuplicateResourceException("voter with email id"+dto.getEmail()+" already exists"); 
 		}
-		return voterRepository.save(voter);
+		Voter voter = new Voter();
+		voter.setName(dto.getName());
+		voter.setEmail(dto.getEmail());
+		Voter saved = voterRepository.save(voter);
+		return mapToResponseDTO(saved);
 	}
-	public List<Voter> getAllVoters(){
-		return voterRepository.findAll();
+	public List<VoterResponseDTO> getAllVoters(){
+		return voterRepository.findAll().stream().map(this::mapToResponseDTO).toList();
 	}
-	public Voter getVoterById(Long id) {
+	public VoterResponseDTO getVoterById(Long id) {
 		Voter voter = voterRepository.findById(id).orElse(null);
 		if(voter==null) {
 			throw new ResourceNotFoundException("voter with id"+id+" not found"); 
 		}
-		return voter;
+		return mapToResponseDTO(voter);
 	}
-	public Voter updateVoter(Long id,Voter updatedVoter) {
+	public VoterResponseDTO updateVoter(Long id,VoterRequestDTO dto) {
 		Voter voter = voterRepository.findById(id).orElse(null);
 		if(voter==null) {
 			throw new ResourceNotFoundException("voter with id"+id+" not found"); 
 		}
-		if(updatedVoter.getName()!=null) {
-			voter.setName(updatedVoter.getName());
+		if(dto.getName()!=null) {
+			voter.setName(dto.getName());
 		}
-		if(updatedVoter.getEmail()!=null) {
-			voter.setEmail(updatedVoter.getEmail());
+		if(dto.getEmail()!=null) {
+			voter.setEmail(dto.getEmail());
 		}
-		
-		return voterRepository.save(voter);
+		Voter updated = voterRepository.save(voter);
+		return mapToResponseDTO(updated);
 	}
 	
 	@Transactional
@@ -66,6 +71,14 @@ public class VoterService {
 			candidateRepository.save(candidate);
 		}
 		voterRepository.delete(voter);
+	}
+	private VoterResponseDTO mapToResponseDTO(Voter voter) {
+		VoterResponseDTO dto = new VoterResponseDTO();
+		dto.setId(voter.getId());
+		dto.setName(voter.getName());
+		dto.setEmail(voter.getEmail());
+		dto.setHasVoted(voter.isHasVoted());
+		return dto;
 	}
 
 }

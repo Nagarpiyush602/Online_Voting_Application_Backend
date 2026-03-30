@@ -3,7 +3,6 @@ package in.scalive.votezy.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,11 +20,8 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/candidates")
-<<<<<<< HEAD
-@CrossOrigin
-=======
+
 @CrossOrigin(origins = "https://nagarpiyush602.github.io")
->>>>>>> 2fa4dfcace18c4c621ea845887c4d95ed16855c6
 public class CandidateController {
 	private CandidateService candidateService;
 

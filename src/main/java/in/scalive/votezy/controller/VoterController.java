@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import in.scalive.votezy.dto.VoterRequestDTO;
+import in.scalive.votezy.dto.VoterResponseDTO;
 import in.scalive.votezy.entity.Voter;
 import in.scalive.votezy.service.VoterService;
 import jakarta.validation.Valid;
@@ -28,24 +30,20 @@ public class VoterController {
 		this.voterService = voterService;
 	}
 	@PostMapping("/register")
-	public ResponseEntity<Voter> registerVoter(@RequestBody @Valid Voter voter) {
-		Voter savedVoter = voterService.registerVoter(voter);
-		return new ResponseEntity<>(savedVoter,HttpStatus.CREATED);
+	public ResponseEntity<VoterResponseDTO> registerVoter(@RequestBody @Valid VoterRequestDTO dto) {
+		return new ResponseEntity<>(voterService.registerVoter(dto),HttpStatus.CREATED);
 	}
 	@GetMapping("/{id}")
-	public ResponseEntity<Voter> getVoterById(@PathVariable Long id){
-		Voter voter = voterService.getVoterById(id);
-		return new ResponseEntity<>(voter,HttpStatus.OK);
+	public ResponseEntity<VoterResponseDTO> getVoterById(@PathVariable Long id){
+		return new ResponseEntity<>(voterService.getVoterById(id),HttpStatus.OK);
 	}
 	@GetMapping()
-	public ResponseEntity<List<Voter>> getAllVoters(){
-		List<Voter> voterList = voterService.getAllVoters();
-		return new ResponseEntity<>(voterList,HttpStatus.OK);
+	public ResponseEntity<List<VoterResponseDTO>> getAllVoters(){
+		return new ResponseEntity<>(voterService.getAllVoters(),HttpStatus.OK);
 	}
 	@PutMapping("/update/{id}")
-	public ResponseEntity<Voter> UpadeteVoters(@PathVariable Long id,@RequestBody Voter voter){
-		Voter updatedVoter = voterService.updateVoter(id,voter);
-		return new ResponseEntity<>(updatedVoter,HttpStatus.OK);
+	public ResponseEntity<VoterResponseDTO> UpadeteVoters(@PathVariable Long id,@RequestBody VoterRequestDTO dto){
+		return new ResponseEntity<>(voterService.updateVoter(id,dto),HttpStatus.OK);
 	}
 	@DeleteMapping("/delete/{id}")
 	public ResponseEntity<String> deleteVoter(@PathVariable Long id){
