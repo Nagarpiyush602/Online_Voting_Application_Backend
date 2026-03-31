@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import in.scalive.votezy.entity.ElectionResult;
+
+import in.scalive.votezy.dto.ElectionResultResponseDTO;
 import in.scalive.votezy.service.ElectionResultService;
 
 @RestController
@@ -23,15 +24,13 @@ public class ElectionResultController {
 		this.electionResultService = electionResultService;
 	}
 	@PostMapping("/declare/{electionName}")
-	public ResponseEntity<ElectionResult> declareElectionResult(@PathVariable String electionName){
-		ElectionResult result=electionResultService.declareElectionResult(electionName);
+	public ResponseEntity<ElectionResultResponseDTO> declareElectionResult(@PathVariable String electionName){
+		return ResponseEntity.ok(electionResultService.declareElectionResult(electionName));
 
-		return ResponseEntity.ok(result);
 	}
 	@GetMapping
-	public ResponseEntity<List<ElectionResult>> getAllResults(){
-		List <ElectionResult> results = electionResultService.getAllResults();
-		return ResponseEntity.ok(results);
-	}
+	public ResponseEntity<List<ElectionResultResponseDTO>> getAllResults(){
+		return ResponseEntity.ok(electionResultService.getAllResults());
+		}
 	
 }

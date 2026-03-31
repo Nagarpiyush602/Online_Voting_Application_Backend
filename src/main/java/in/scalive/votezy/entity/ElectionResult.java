@@ -1,6 +1,5 @@
 package in.scalive.votezy.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Entity;
@@ -26,7 +25,6 @@ public class ElectionResult {
 	
 	@OneToOne
 	@JoinColumn(name="winner_id")
-	@JsonIgnore
 	private Candidate winner;
 	
 	@JsonProperty("winnerId")

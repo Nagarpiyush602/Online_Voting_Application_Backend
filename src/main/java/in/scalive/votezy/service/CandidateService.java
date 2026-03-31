@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.CandidateRequestDTO;
+import in.scalive.votezy.dto.CandidateResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.exception.ResourceNotFoundException;
@@ -16,37 +18,45 @@ public class CandidateService {
 	public CandidateService(CandidateRepository candidateRepository) {
 		this.candidateRepository = candidateRepository;
 	}
-	public Candidate addCandidate(Candidate candidate) {
-		return candidateRepository.save(candidate);
+	public CandidateResponseDTO addCandidate(CandidateRequestDTO request) {
+		Candidate candidate = new Candidate();
+		candidate.setName(request.getName());
+		candidate.setParty(request.getParty());
+		
+		candidate = candidateRepository.save(candidate);
+		return mapToDTO(candidate);
 	}
-	public List<Candidate> getAllCandidates(){
-		return candidateRepository.findAll();
+	public List<CandidateResponseDTO> getAllCandidates(){
+		return candidateRepository.findAll().stream().map(this::mapToDTO).toList();
 	}
-	public Candidate getCandidateById(Long id) {
-		Candidate candidate=candidateRepository.findById(id).orElse(null);
-		if(candidate==null) {
-			throw new ResourceNotFoundException("Candidate with id:"+id+" not found");
-		}
-		return candidate;
+	public CandidateResponseDTO getCandidateById(Long id) {
+		Candidate candidate=candidateRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Candidate not found"));
+		
+		return mapToDTO(candidate);
 	}
-	public Candidate updateCandidate(Long id,Candidate updatedCandidate) {
-		Candidate candidate=getCandidateById(id);
-		if(updatedCandidate.getName()!=null) {
-			candidate.setName(updatedCandidate.getName());
+	public CandidateResponseDTO updateCandidate(Long id,CandidateRequestDTO request) {
+		Candidate candidate=candidateRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Candidate not found"));
+		if(request.getName()!=null) {
+			candidate.setName(request.getName());
 		}
-		if(updatedCandidate.getParty()!=null) {
-			candidate.setParty(updatedCandidate.getParty());
+		if(request.getParty()!=null) {
+			candidate.setParty(request.getParty());
 		}
-		return candidateRepository.save(candidate);
+		candidate = candidateRepository.save(candidate);
+		return mapToDTO(candidate);
 	}
 	
 	public void deleteCandidate(Long id) {
-		Candidate candidate=getCandidateById(id);
+		Candidate candidate = candidateRepository.findById(id)
+		        .orElseThrow(() -> new ResourceNotFoundException("Candidate not found"));
 		List<Vote> votes=candidate.getVote();
 		for(Vote v:votes) {
 			v.setCandidate(null);
 		}
 		candidate.getVote().clear();
 		candidateRepository.delete(candidate);
+	}
+	private CandidateResponseDTO mapToDTO(Candidate c) {
+		return new CandidateResponseDTO(c.getId(),c.getName(),c.getParty(),c.getVoteCount());
 	}
 }

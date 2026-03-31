@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import in.scalive.votezy.dto.VoterRequestDTO;
 import in.scalive.votezy.dto.VoterResponseDTO;
-import in.scalive.votezy.entity.Voter;
 import in.scalive.votezy.service.VoterService;
 import jakarta.validation.Valid;
 

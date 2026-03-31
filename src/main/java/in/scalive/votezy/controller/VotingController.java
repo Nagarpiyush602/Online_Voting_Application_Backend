@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import in.scalive.votezy.dto.VoteRequestDTO;
 import in.scalive.votezy.dto.VoteResponseDTO;
-import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.service.VotingService;
 import jakarta.validation.Valid;
 
@@ -27,15 +26,14 @@ public class VotingController {
 		this.votingService = votingService;
 	}
 	@PostMapping("/cast")
-	public ResponseEntity<VoteResponseDTO> castVote(@RequestBody @Valid VoteRequestDTO voteRequest){
-		Vote vote=votingService.casteVote(voteRequest.getVoterId(),voteRequest.getCandidateId());
-		VoteResponseDTO voteResponse=new VoteResponseDTO("Vote casted successfully",true,vote.getVoterId(),vote.getCandidateId());
-		return new ResponseEntity<>(voteResponse,HttpStatus.CREATED);
+	public ResponseEntity<VoteResponseDTO> castVote(@RequestBody @Valid VoteRequestDTO request){
+		VoteResponseDTO voteResponse= votingService.casteVote(request);
+				return new ResponseEntity<>(voteResponse,HttpStatus.CREATED);
 	}
 	@GetMapping
-	public ResponseEntity<List<Vote>> getAllVotes(){
-		List<Vote> voteList = votingService.getAllVotes();
-		return new ResponseEntity<>(voteList,HttpStatus.OK);
+	public ResponseEntity<List<VoteResponseDTO>> getAllVotes(){
+		List<VoteResponseDTO> response = votingService.getAllVotes();
+		return new ResponseEntity<>(response,HttpStatus.OK);
 	}
 	
 	

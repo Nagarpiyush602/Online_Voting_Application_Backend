@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.ElectionResultResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.ElectionResult;
 import in.scalive.votezy.exception.ResourceNotFoundException;
@@ -23,10 +24,10 @@ public class ElectionResultService {
 		this.electionResultRepository = electionResultRepository;
 		this.voteRepository = voteRepository;
 	}
-	public ElectionResult declareElectionResult(String electionName) {
+	public ElectionResultResponseDTO declareElectionResult(String electionName) {
 		Optional<ElectionResult> existingResult=this.electionResultRepository.findByElectionName(electionName);
 		if(existingResult.isPresent()) {
-			return existingResult.get();
+			return mapToDTO(existingResult.get());
 		}
 		if(voteRepository.count()==0) {
 			throw new IllegalStateException("Cannot declare the result as no votes have been");
@@ -37,16 +38,25 @@ public class ElectionResultService {
 		}
 		Candidate winner=allCandidates.get(0);
 		int totalVotes=0;
-		for(Candidate candidate:allCandidates) {
-			totalVotes +=candidate.getVoteCount();
+		for(Candidate c:allCandidates) {
+			totalVotes +=c.getVoteCount();
 		}
 		ElectionResult result=new ElectionResult();
 		result.setElectionName(electionName);
 		result.setWinner(winner);
 		result.setTotalVotes(totalVotes);
-		return electionResultRepository.save(result);
+		result = electionResultRepository.save(result);
+		return mapToDTO(result);
 	}
-	public List<ElectionResult>getAllResults(){
-		return electionResultRepository.findAll();
+	public List<ElectionResultResponseDTO>getAllResults(){
+		return electionResultRepository.findAll().stream().map(this::mapToDTO).toList();
+	}
+	private ElectionResultResponseDTO mapToDTO(ElectionResult result) {
+		ElectionResultResponseDTO dto = new ElectionResultResponseDTO();
+		dto.setElectionName(result.getElectionName());
+		dto.setTotalVotes(result.getTotalVotes());
+		dto.setWinnerId(result.getWinnerId());
+		dto.setWinnerVotes(result.getWinner()!=null?result.getWinner().getVoteCount():0);
+		return dto;
 	}
 }

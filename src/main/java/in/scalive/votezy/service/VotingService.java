@@ -1,9 +1,12 @@
 package in.scalive.votezy.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.VoteRequestDTO;
+import in.scalive.votezy.dto.VoteResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.entity.Voter;
@@ -19,6 +22,7 @@ public class VotingService {
 	private VoteRepository voteRepository;
 	private CandidateRepository candidateRepository;
 	private VoterRepository voterRepository;
+	
 	public VotingService(VoteRepository voteRepository, CandidateRepository candidateRepository,
 			VoterRepository voterRepository) {
 		this.voteRepository = voteRepository;
@@ -26,32 +30,28 @@ public class VotingService {
 		this.voterRepository = voterRepository;
 	}
 	@Transactional
-	public Vote casteVote(Long voterId,Long candidateId) {
-		if(!voterRepository.existsById(voterId)) {
-			throw new ResourceNotFoundException("Voter not found with id:"+voterId);
+	public VoteResponseDTO casteVote(VoteRequestDTO request) {
+		Voter voter=voterRepository.findById(request.getVoterId()).orElseThrow(()->new ResourceNotFoundException("Voter not found with id: "+request.getVoterId()));
+		if(voter.isHasVoted() || voteRepository.existsByVoter_Id(voter.getId())) {
+			throw new VoteNotAllowedException("Voter already casted vote");
 		}
-		if(!candidateRepository.existsById(candidateId)) {
-			throw new ResourceNotFoundException("candidate not found with id:"+candidateId);
-		}
-		Voter voter=voterRepository.findById(voterId).get();
-		if(voter.isHasVoted()) {
-			throw new VoteNotAllowedException("Voter ID:"+voterId+"has alreadyy casted vote");
-		}
-		Candidate candidate= candidateRepository.findById(candidateId).get();
+		Candidate candidate= candidateRepository.findById(request.getCandidateId()).orElseThrow(()-> new ResourceNotFoundException("Candidate not found with id: " +request.getCandidateId()));
 		Vote vote=new Vote();
 		vote.setVoter(voter);
 		vote.setCandidate(candidate);
-//		voteRepository.save(vote);
+		vote = voteRepository.save(vote);
 		
 		candidate.setVoteCount(candidate.getVoteCount()+1);
 		candidateRepository.save(candidate);
 		voter.setVote(vote);
 		voter.setHasVoted(true);
 		voterRepository.save(voter);
-		return vote;
+		return new VoteResponseDTO("Vote Casted Successfully",true,voter.getId(),candidate.getId());
 	}
-	public List<Vote> getAllVotes(){
-		return voteRepository.findAll();
+	public List<VoteResponseDTO> getAllVotes(){
+		List<Vote> votes = voteRepository.findAll();
+		
+		return votes.stream().map(v -> new VoteResponseDTO("Fetched successfully",true,v.getVoterId(),v.getCandidateId())).collect(Collectors.toList());
 	}
 	
 }

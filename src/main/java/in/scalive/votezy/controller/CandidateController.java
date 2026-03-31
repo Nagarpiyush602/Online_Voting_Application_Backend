@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import in.scalive.votezy.entity.Candidate;
+import in.scalive.votezy.dto.CandidateRequestDTO;
+import in.scalive.votezy.dto.CandidateResponseDTO;
 import in.scalive.votezy.service.CandidateService;
 import jakarta.validation.Valid;
 
@@ -29,29 +30,25 @@ public class CandidateController {
 		this.candidateService = candidateService;
 	}
 	@PostMapping("/add")
-	public ResponseEntity<Candidate> addCandidate(@RequestBody @Valid Candidate candidate){
-		Candidate saveCandidate=candidateService.addCandidate(candidate);
-		return new ResponseEntity<Candidate>(saveCandidate,HttpStatus.CREATED);
+	public ResponseEntity<CandidateResponseDTO> addCandidate(@RequestBody @Valid CandidateRequestDTO request){
+		return new ResponseEntity<>(candidateService.addCandidate(request),HttpStatus.CREATED);
 	}
 	@GetMapping()
-	public ResponseEntity<List<Candidate>> getAllCandidates(){
-		List<Candidate> candidateList=this.candidateService.getAllCandidates();
-		return new ResponseEntity<List<Candidate>>(candidateList,HttpStatus.OK);
+	public ResponseEntity<List<CandidateResponseDTO>> getAllCandidates(){
+		return ResponseEntity.ok(candidateService.getAllCandidates());
 	}
 	@GetMapping("/{id}")
-	public ResponseEntity<Candidate> getCandidateById(@PathVariable Long id){
-		Candidate candidate=this.candidateService.getCandidateById(id);
-		return new ResponseEntity<Candidate>(candidate,HttpStatus.OK);
+	public ResponseEntity<CandidateResponseDTO> getCandidateById(@PathVariable Long id){
+		return ResponseEntity.ok(candidateService.getCandidateById(id));
 	}
 	@PutMapping("/update/{id}")
-	public ResponseEntity<Candidate> updateCandidate(@PathVariable Long id,@RequestBody Candidate candidate){
-		Candidate updateCandidate = candidateService.updateCandidate(id,candidate);
-		return new ResponseEntity<>(updateCandidate,HttpStatus.OK);
+	public ResponseEntity<CandidateResponseDTO> updateCandidate(@PathVariable Long id,@RequestBody CandidateRequestDTO request){
+		return ResponseEntity.ok(candidateService.updateCandidate(id,request));
 		}
 	@DeleteMapping("/delete/{id}")
 	public ResponseEntity<String> deleteCandidate(@PathVariable Long id){
 		candidateService.deleteCandidate(id);
-		return new ResponseEntity<>("Candidate with id:"+id+" deleted successfully",HttpStatus.OK);
+		return ResponseEntity.ok("Candidate with id:"+id+" deleted successfully");
 	}
 	
 }
