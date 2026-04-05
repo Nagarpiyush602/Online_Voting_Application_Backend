@@ -1,6 +1,7 @@
 package in.scalive.votezy.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import in.scalive.votezy.dto.VoteRequestDTO;
 import in.scalive.votezy.dto.VoteResponseDTO;
+import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.service.VotingService;
 import jakarta.validation.Valid;
 
@@ -20,21 +22,46 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/votes")
 @CrossOrigin(origins = "https://nagarpiyush602.github.io")
 public class VotingController {
-	private VotingService votingService;
 
-	public VotingController(VotingService votingService) {
-		this.votingService = votingService;
-	}
-	@PostMapping("/cast")
-	public ResponseEntity<VoteResponseDTO> castVote(@RequestBody @Valid VoteRequestDTO request){
-		VoteResponseDTO voteResponse= votingService.casteVote(request);
-				return new ResponseEntity<>(voteResponse,HttpStatus.CREATED);
-	}
-	@GetMapping
-	public ResponseEntity<List<VoteResponseDTO>> getAllVotes(){
-		List<VoteResponseDTO> response = votingService.getAllVotes();
-		return new ResponseEntity<>(response,HttpStatus.OK);
-	}
-	
-	
+    private VotingService votingService;
+
+    public VotingController(VotingService votingService) {
+        this.votingService = votingService;
+    }
+
+    @PostMapping("/cast")
+    public ResponseEntity<VoteResponseDTO> castVote(@RequestBody @Valid VoteRequestDTO voteRequest) {
+        Vote vote = votingService.casteVote(
+                voteRequest.getVoterId(),
+                voteRequest.getCandidateId(),
+                voteRequest.getElectionId()
+        );
+
+        VoteResponseDTO voteResponse = new VoteResponseDTO(
+                "Vote cast successfully",
+                true,
+                vote.getVoterId(),
+                vote.getCandidateId(),
+                vote.getElectionId()
+        );
+
+        return new ResponseEntity<>(voteResponse, HttpStatus.CREATED);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<VoteResponseDTO>> getAllVotes() {
+        List<Vote> votes = votingService.getAllVotes();
+
+        List<VoteResponseDTO> response = votes.stream()
+                .map(vote -> new VoteResponseDTO(
+                        "Vote fetched successfully",
+                        true,
+                        vote.getVoterId(),
+                        vote.getCandidateId(),
+                        vote.getElectionId()
+                ))
+                .collect(Collectors.toList());
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 }

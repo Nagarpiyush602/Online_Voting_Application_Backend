@@ -29,6 +29,11 @@ public class Vote {
 	@JsonIgnore
 	private Candidate candidate;
 	
+	@ManyToOne
+	@JsonIgnore
+	@JoinColumn(name="election_id")
+	private Election election;
+	
 	@JsonProperty("voterId")
 	public Long getVoterId() {
 		return voter!=null?voter.getId():null;
@@ -36,5 +41,10 @@ public class Vote {
 	@JsonProperty("candidateId")
 	public Long getCandidateId() {
 		return candidate!=null?candidate.getId():null;
+	}
+	
+	@JsonProperty("electionId")
+	public Long getElectionId() {
+		return election!=null ? election.getId():null;
 	}
 }

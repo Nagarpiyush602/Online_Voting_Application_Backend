@@ -5,58 +5,71 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
-import in.scalive.votezy.dto.ElectionResultResponseDTO;
 import in.scalive.votezy.entity.Candidate;
+import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.ElectionResult;
+import in.scalive.votezy.entity.ElectionStatus;
+import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.exception.ResourceNotFoundException;
-import in.scalive.votezy.repository.CandidateRepository;
+import in.scalive.votezy.exception.VoteNotAllowedException;
+import in.scalive.votezy.repository.ElectionRepository;
 import in.scalive.votezy.repository.ElectionResultRepository;
 import in.scalive.votezy.repository.VoteRepository;
 
 @Service
 public class ElectionResultService {
-	private CandidateRepository candidateRepository;
-	private ElectionResultRepository electionResultRepository;
-	private VoteRepository voteRepository;
-	public ElectionResultService(CandidateRepository candidateRepository,
-			ElectionResultRepository electionResultRepository, VoteRepository voteRepository) {
-		this.candidateRepository = candidateRepository;
-		this.electionResultRepository = electionResultRepository;
-		this.voteRepository = voteRepository;
-	}
-	public ElectionResultResponseDTO declareElectionResult(String electionName) {
-		Optional<ElectionResult> existingResult=this.electionResultRepository.findByElectionName(electionName);
-		if(existingResult.isPresent()) {
-			return mapToDTO(existingResult.get());
-		}
-		if(voteRepository.count()==0) {
-			throw new IllegalStateException("Cannot declare the result as no votes have been");
-		}
-		List<Candidate> allCandidates=candidateRepository.findAllByOrderByVoteCountDesc();
-		if(allCandidates.isEmpty()) {
-			throw new ResourceNotFoundException("No candidates available");
-		}
-		Candidate winner=allCandidates.get(0);
-		int totalVotes=0;
-		for(Candidate c:allCandidates) {
-			totalVotes +=c.getVoteCount();
-		}
-		ElectionResult result=new ElectionResult();
-		result.setElectionName(electionName);
-		result.setWinner(winner);
-		result.setTotalVotes(totalVotes);
-		result = electionResultRepository.save(result);
-		return mapToDTO(result);
-	}
-	public List<ElectionResultResponseDTO>getAllResults(){
-		return electionResultRepository.findAll().stream().map(this::mapToDTO).toList();
-	}
-	private ElectionResultResponseDTO mapToDTO(ElectionResult result) {
-		ElectionResultResponseDTO dto = new ElectionResultResponseDTO();
-		dto.setElectionName(result.getElectionName());
-		dto.setTotalVotes(result.getTotalVotes());
-		dto.setWinnerId(result.getWinnerId());
-		dto.setWinnerVotes(result.getWinner()!=null?result.getWinner().getVoteCount():0);
-		return dto;
-	}
+
+    private final ElectionRepository electionRepository;
+    private final ElectionResultRepository electionResultRepository;
+    private final VoteRepository voteRepository;
+
+    public ElectionResultService(ElectionRepository electionRepository,
+                                 ElectionResultRepository electionResultRepository,
+                                 VoteRepository voteRepository) {
+        this.electionRepository = electionRepository;
+        this.electionResultRepository = electionResultRepository;
+        this.voteRepository = voteRepository;
+    }
+
+    public ElectionResult declareElectionResult(Long electionId) {
+
+        Election election = electionRepository.findById(electionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + electionId));
+
+        if (electionResultRepository.findByElection_Id(electionId).isPresent()) {
+            return electionResultRepository.findByElection_Id(electionId).get();
+        }
+
+        if (election.getStatus() != ElectionStatus.COMPLETED) {
+            throw new VoteNotAllowedException("Result can be declared only after election is completed");
+        }
+
+        List<Vote> votes = voteRepository.findByElection_Id(electionId);
+
+        if (votes.isEmpty()) {
+            throw new IllegalStateException("Cannot declare result because no votes were cast in this election");
+        }
+
+        Candidate winner = null;
+        int maxVotes = 0;
+
+        for (Vote vote : votes) {
+            Candidate candidate = vote.getCandidate();
+            if (candidate.getVoteCount() > maxVotes) {
+                maxVotes = candidate.getVoteCount();
+                winner = candidate;
+            }
+        }
+
+        ElectionResult result = new ElectionResult();
+        result.setElection(election);
+        result.setWinner(winner);
+        result.setTotalVotes(votes.size());
+
+        return electionResultRepository.save(result);
+    }
+
+    public List<ElectionResult> getAllResults() {
+        return electionResultRepository.findAll();
+    }
 }
