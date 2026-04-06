@@ -36,48 +36,37 @@ public class VotingService {
 		this.voterRepository = voterRepository;
 	}
 	@Transactional
-	public Vote casteVote(Long voterId,Long candidateId,Long electionId) {
-		Voter voter=voterRepository.findById(voterId).orElseThrow(()->new ResourceNotFoundException("Voter not found with id: "+voterId));
-		Candidate candidate= candidateRepository.findById(candidateId).orElseThrow(()-> new ResourceNotFoundException("Candidate not found with id: " +candidateId));
-		Election election= electionRepository.findById(electionId).orElseThrow(()-> new ResourceNotFoundException("election not found with id: " +electionId));
-		
-		ElectionStatus currentStatus = getCurrentElectionStatus(election);
-        election.setStatus(currentStatus);
-        
-        if(currentStatus!=ElectionStatus.ACTIVE) {
-        	throw new VoteNotAllowedException(
-                    "Voting is not allowed because election status is " + currentStatus);
+	public VoteResponseDTO casteVote(VoteRequestDTO request) {
+		Voter voter=voterRepository.findById(request.getVoterId()).orElseThrow(()->new ResourceNotFoundException("Voter not found with id: "+request.getVoterId()));
+		Candidate candidate= candidateRepository.findById(request.getCandidateId()).orElseThrow(()-> new ResourceNotFoundException("Candidate not found with id: " +request.getCandidateId()));
+		Election election= electionRepository.findById(request.getElectionId()).orElseThrow(()-> new ResourceNotFoundException("election not found with id: " +request.getElectionId()));
+		if(election.getStatus()!=ElectionStatus.ACTIVE) {
+			throw new IllegalStateException("Vote can be cast only when election is ACTIVE");
+		}
+        if(candidate.getElection()==null || !candidate.getElection().getId().equals(election.getId())) {
+        	throw new IllegalStateException(
+                    "Candidate does not belong to this election");
         }
 		if(voter.isHasVoted()) {
-			throw new VoteNotAllowedException("Voter with id " + voterId + " has already cast a vote");
+			throw new VoteNotAllowedException("Voter has already cast the vote");
 		}
 		
 		Vote vote=new Vote();
 		vote.setVoter(voter);
 		vote.setCandidate(candidate);
 		vote.setElection(election);
-		Vote savedVote = voteRepository.save(vote);
+		voteRepository.save(vote);
 		
 		candidate.setVoteCount(candidate.getVoteCount()+1);
 		candidateRepository.save(candidate);
-		voter.setVote(savedVote);
+		
 		voter.setHasVoted(true);
 		voterRepository.save(voter);
-		return savedVote;
+		return new VoteResponseDTO("Voter cast successfully",true,voter.getId(),candidate.getId(),election.getId());
 	}
 	public List<Vote> getAllVotes(){
 		return voteRepository.findAll();
 	}
-	private ElectionStatus getCurrentElectionStatus(Election election) {
-		LocalDateTime now = LocalDateTime.now();
-		
-		if(now.isBefore(election.getStartTime())) {
-			return ElectionStatus.UPCOMING;
-		}
-		if(now.isAfter(election.getEndTime())) {
-			return ElectionStatus.COMPLETED;
-		}
-		return ElectionStatus.ACTIVE;
-	}
+	
 	
 }

@@ -11,4 +11,5 @@ public class CandidateResponseDTO {
 	private String name;
 	private String party;
 	private int voteCount;
+	private Long electionId;
 }

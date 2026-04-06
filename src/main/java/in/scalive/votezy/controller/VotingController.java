@@ -31,20 +31,7 @@ public class VotingController {
 
     @PostMapping("/cast")
     public ResponseEntity<VoteResponseDTO> castVote(@RequestBody @Valid VoteRequestDTO voteRequest) {
-        Vote vote = votingService.casteVote(
-                voteRequest.getVoterId(),
-                voteRequest.getCandidateId(),
-                voteRequest.getElectionId()
-        );
-
-        VoteResponseDTO voteResponse = new VoteResponseDTO(
-                "Vote cast successfully",
-                true,
-                vote.getVoterId(),
-                vote.getCandidateId(),
-                vote.getElectionId()
-        );
-
+    	VoteResponseDTO voteResponse = votingService.casteVote(voteRequest);
         return new ResponseEntity<>(voteResponse, HttpStatus.CREATED);
     }
 
@@ -56,11 +43,11 @@ public class VotingController {
                 .map(vote -> new VoteResponseDTO(
                         "Vote fetched successfully",
                         true,
-                        vote.getVoterId(),
-                        vote.getCandidateId(),
-                        vote.getElectionId()
+                        vote.getVoter().getId(),
+                        vote.getCandidate().getId(),
+                        vote.getElection().getId()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

@@ -40,4 +40,8 @@ public class Election {
 	@OneToMany(mappedBy="election",cascade=CascadeType.ALL)
 	@JsonIgnore
 	private List<Vote> votes;
+	
+	@OneToMany(mappedBy="election",cascade=CascadeType.ALL)
+	@JsonIgnore
+	private List<Candidate> candidate;
 }

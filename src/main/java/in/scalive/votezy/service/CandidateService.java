@@ -7,21 +7,27 @@ import org.springframework.stereotype.Service;
 import in.scalive.votezy.dto.CandidateRequestDTO;
 import in.scalive.votezy.dto.CandidateResponseDTO;
 import in.scalive.votezy.entity.Candidate;
+import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.exception.ResourceNotFoundException;
 import in.scalive.votezy.repository.CandidateRepository;
+import in.scalive.votezy.repository.ElectionRepository;
 
 @Service
 public class CandidateService {
 	private CandidateRepository candidateRepository;
+	private ElectionRepository electionRepository;
 
-	public CandidateService(CandidateRepository candidateRepository) {
+	public CandidateService(CandidateRepository candidateRepository,ElectionRepository electionRepository) {
 		this.candidateRepository = candidateRepository;
+		this.electionRepository = electionRepository;
 	}
 	public CandidateResponseDTO addCandidate(CandidateRequestDTO request) {
+		Election election = electionRepository.findById(request.getElectionId()).orElseThrow(()->new ResourceNotFoundException("Election not found with id: " +request.getElectionId()));
 		Candidate candidate = new Candidate();
 		candidate.setName(request.getName());
 		candidate.setParty(request.getParty());
+		candidate.setElection(election);
 		
 		candidate = candidateRepository.save(candidate);
 		return mapToDTO(candidate);
@@ -42,6 +48,10 @@ public class CandidateService {
 		if(request.getParty()!=null) {
 			candidate.setParty(request.getParty());
 		}
+		if(request.getElectionId()!=null) {
+			Election election = electionRepository.findById(request.getElectionId()).orElseThrow(()->new ResourceNotFoundException("Election not found with id: "+request.getElectionId()));
+		    candidate.setElection(election);
+		}
 		candidate = candidateRepository.save(candidate);
 		return mapToDTO(candidate);
 	}
@@ -57,6 +67,6 @@ public class CandidateService {
 		candidateRepository.delete(candidate);
 	}
 	private CandidateResponseDTO mapToDTO(Candidate c) {
-		return new CandidateResponseDTO(c.getId(),c.getName(),c.getParty(),c.getVoteCount());
+		return new CandidateResponseDTO(c.getId(),c.getName(),c.getParty(),c.getVoteCount(),c.getElection().getId());
 	}
 }
