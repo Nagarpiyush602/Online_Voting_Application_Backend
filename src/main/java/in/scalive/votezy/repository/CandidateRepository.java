@@ -8,4 +8,5 @@ import in.scalive.votezy.entity.Candidate;
 
 public interface CandidateRepository extends JpaRepository<Candidate,Long>{
 	List<Candidate> findAllByOrderByVoteCountDesc();
+	List<Candidate> findByElectionId(Long electionId);
 }

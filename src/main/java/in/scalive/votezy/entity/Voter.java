@@ -33,9 +33,7 @@ public class Voter {
 	@Email(message="Invalid email format")
 	private String email;
 	
-	private boolean hasVoted=false;
-	
 	@OneToOne(mappedBy="voter",cascade=CascadeType.ALL)
 	@JsonIgnore
-	private Vote vote;
+	private Vote votes;
 }

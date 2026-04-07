@@ -39,5 +39,5 @@ public class Candidate {
 	
 	@OneToMany(mappedBy="candidate",cascade=CascadeType.ALL)
 	@JsonIgnore
-	private List <Vote>vote;
+	private List <Vote>votes;
 }

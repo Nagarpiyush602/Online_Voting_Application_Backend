@@ -37,9 +37,9 @@ public class CandidateController {
 	public ResponseEntity<List<CandidateResponseDTO>> getAllCandidates(){
 		return ResponseEntity.ok(candidateService.getAllCandidates());
 	}
-	@GetMapping("/{id}")
-	public ResponseEntity<CandidateResponseDTO> getCandidateById(@PathVariable Long id){
-		return ResponseEntity.ok(candidateService.getCandidateById(id));
+	@GetMapping("/election/{electionId}")
+	public ResponseEntity<List<CandidateResponseDTO>> getCandidatesByElectionId(@PathVariable Long electionId) {
+		return new ResponseEntity<>(candidateService.getCandidatesByElectionId(electionId), HttpStatus.OK);
 	}
 	@PutMapping("/update/{id}")
 	public ResponseEntity<CandidateResponseDTO> updateCandidate(@PathVariable Long id,@RequestBody CandidateRequestDTO request){

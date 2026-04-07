@@ -32,6 +32,16 @@ public class CandidateService {
 		candidate = candidateRepository.save(candidate);
 		return mapToDTO(candidate);
 	}
+	public List<CandidateResponseDTO> getCandidatesByElectionId(Long electionId) {
+		electionRepository.findById(electionId)
+				.orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + electionId));
+
+		return candidateRepository.findByElectionId(electionId)
+				.stream()
+				.map(this::mapToDTO)
+				.toList();
+	}
+
 	public List<CandidateResponseDTO> getAllCandidates(){
 		return candidateRepository.findAll().stream().map(this::mapToDTO).toList();
 	}
@@ -59,11 +69,11 @@ public class CandidateService {
 	public void deleteCandidate(Long id) {
 		Candidate candidate = candidateRepository.findById(id)
 		        .orElseThrow(() -> new ResourceNotFoundException("Candidate not found"));
-		List<Vote> votes=candidate.getVote();
+		List<Vote> votes=candidate.getVotes();
 		for(Vote v:votes) {
 			v.setCandidate(null);
 		}
-		candidate.getVote().clear();
+		candidate.getVotes().clear();
 		candidateRepository.delete(candidate);
 	}
 	private CandidateResponseDTO mapToDTO(Candidate c) {

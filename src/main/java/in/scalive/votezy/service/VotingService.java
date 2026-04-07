@@ -47,9 +47,9 @@ public class VotingService {
         	throw new IllegalStateException(
                     "Candidate does not belong to this election");
         }
-		if(voter.isHasVoted()) {
-			throw new VoteNotAllowedException("Voter has already cast the vote");
-		}
+        if (voteRepository.existsByVoterAndElection(voter, election)) {
+        	throw new VoteNotAllowedException("Voter has already cast the vote in this election");
+        }
 		
 		Vote vote=new Vote();
 		vote.setVoter(voter);
@@ -60,9 +60,7 @@ public class VotingService {
 		candidate.setVoteCount(candidate.getVoteCount()+1);
 		candidateRepository.save(candidate);
 		
-		voter.setHasVoted(true);
-		voterRepository.save(voter);
-		return new VoteResponseDTO("Voter cast successfully",true,voter.getId(),candidate.getId(),election.getId());
+		return new VoteResponseDTO("Vote cast successfully",true,voter.getId(),candidate.getId(),election.getId());
 	}
 	public List<Vote> getAllVotes(){
 		return voteRepository.findAll();

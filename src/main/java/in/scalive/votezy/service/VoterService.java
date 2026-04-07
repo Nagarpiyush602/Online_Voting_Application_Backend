@@ -64,7 +64,7 @@ public class VoterService {
 		if(voter==null) {
 			throw new ResourceNotFoundException("cannot delete voter with id : "+id+" as it does not exists"); 
 		}
-		Vote vote=voter.getVote();
+		Vote vote=voter.getVotes();
 		if(vote!=null) {
 			Candidate candidate = vote.getCandidate();
 			candidate.setVoteCount(candidate.getVoteCount()-1);
@@ -77,7 +77,6 @@ public class VoterService {
 		dto.setId(voter.getId());
 		dto.setName(voter.getName());
 		dto.setEmail(voter.getEmail());
-		dto.setHasVoted(voter.isHasVoted());
 		return dto;
 	}
 
