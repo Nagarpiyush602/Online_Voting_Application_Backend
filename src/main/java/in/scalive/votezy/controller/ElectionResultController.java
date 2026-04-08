@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import in.scalive.votezy.entity.ElectionResult;
+import in.scalive.votezy.dto.ElectionResultResponseDTO;
 import in.scalive.votezy.service.ElectionResultService;
 
 @RestController
@@ -20,13 +20,17 @@ public class ElectionResultController {
     }
 
     @PostMapping("/declare/{electionId}")
-    public ResponseEntity<ElectionResult> declareElectionResult(@PathVariable Long electionId) {
-        ElectionResult result = electionResultService.declareElectionResult(electionId);
-        return ResponseEntity.ok(result);
+    public ResponseEntity<ElectionResultResponseDTO> declareResult(@PathVariable Long electionId) {
+        return ResponseEntity.ok(electionResultService.declareElectionResult(electionId));
     }
 
     @GetMapping
-    public ResponseEntity<List<ElectionResult>> getAllResults() {
+    public ResponseEntity<List<ElectionResultResponseDTO>> getAllResults() {
         return ResponseEntity.ok(electionResultService.getAllResults());
+    }
+
+    @GetMapping("/{electionId}")
+    public ResponseEntity<ElectionResultResponseDTO> getResultByElectionId(@PathVariable Long electionId) {
+        return ResponseEntity.ok(electionResultService.getResultByElectionId(electionId));
     }
 }

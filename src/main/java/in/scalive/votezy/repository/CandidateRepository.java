@@ -6,7 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import in.scalive.votezy.entity.Candidate;
 
-public interface CandidateRepository extends JpaRepository<Candidate,Long>{
-	List<Candidate> findAllByOrderByVoteCountDesc();
-	List<Candidate> findByElectionId(Long electionId);
+public interface CandidateRepository extends JpaRepository<Candidate, Long> {
+
+    List<Candidate> findAllByOrderByVoteCountDesc();
+
+    List<Candidate> findByElectionId(Long electionId);
 }

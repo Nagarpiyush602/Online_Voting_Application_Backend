@@ -31,7 +31,7 @@ public class VotingController {
 
     @PostMapping("/cast")
     public ResponseEntity<VoteResponseDTO> castVote(@RequestBody @Valid VoteRequestDTO voteRequest) {
-    	VoteResponseDTO voteResponse = votingService.casteVote(voteRequest);
+    	VoteResponseDTO voteResponse = votingService.castVote(voteRequest);
         return new ResponseEntity<>(voteResponse, HttpStatus.CREATED);
     }
 

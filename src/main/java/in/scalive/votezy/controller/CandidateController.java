@@ -29,10 +29,16 @@ public class CandidateController {
 	public CandidateController(CandidateService candidateService) {
 		this.candidateService = candidateService;
 	}
+	
 	@PostMapping("/add")
 	public ResponseEntity<CandidateResponseDTO> addCandidate(@RequestBody @Valid CandidateRequestDTO request){
 		return new ResponseEntity<>(candidateService.addCandidate(request),HttpStatus.CREATED);
 	}
+	@GetMapping("/{id}")
+	public ResponseEntity<CandidateResponseDTO> getCandidateById(@PathVariable Long id) {
+	    return ResponseEntity.ok(candidateService.getCandidateById(id));
+	}
+	
 	@GetMapping()
 	public ResponseEntity<List<CandidateResponseDTO>> getAllCandidates(){
 		return ResponseEntity.ok(candidateService.getAllCandidates());

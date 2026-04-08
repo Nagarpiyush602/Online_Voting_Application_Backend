@@ -41,7 +41,7 @@ public class VoterController {
 		return new ResponseEntity<>(voterService.getAllVoters(),HttpStatus.OK);
 	}
 	@PutMapping("/update/{id}")
-	public ResponseEntity<VoterResponseDTO> UpadeteVoters(@PathVariable Long id,@RequestBody VoterRequestDTO dto){
+	public ResponseEntity<VoterResponseDTO> upadeteVoters(@PathVariable Long id,@RequestBody VoterRequestDTO dto){
 		return new ResponseEntity<>(voterService.updateVoter(id,dto),HttpStatus.OK);
 	}
 	@DeleteMapping("/delete/{id}")
