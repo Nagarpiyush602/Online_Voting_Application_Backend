@@ -15,6 +15,7 @@ import lombok.Data;
 @Entity
 @Data
 public class Vote {
+	
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
@@ -38,6 +39,7 @@ public class Vote {
 	public Long getVoterId() {
 		return voter!=null?voter.getId():null;
 	}
+	
 	@JsonProperty("candidateId")
 	public Long getCandidateId() {
 		return candidate!=null?candidate.getId():null;

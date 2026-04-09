@@ -7,8 +7,10 @@ import org.springframework.stereotype.Service;
 
 import in.scalive.votezy.dto.CandidateRequestDTO;
 import in.scalive.votezy.dto.CandidateResponseDTO;
+import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Election;
+import in.scalive.votezy.entity.ElectionStatus;
 import in.scalive.votezy.exception.ResourceNotFoundException;
 import in.scalive.votezy.repository.CandidateRepository;
 import in.scalive.votezy.repository.ElectionRepository;
@@ -18,10 +20,12 @@ public class CandidateService {
 
     private CandidateRepository candidateRepository;
     private ElectionRepository electionRepository;
+    private final ElectionService electionService;
 
-    public CandidateService(CandidateRepository candidateRepository, ElectionRepository electionRepository) {
+    public CandidateService(CandidateRepository candidateRepository, ElectionRepository electionRepository,ElectionService electionService) {
         this.candidateRepository = candidateRepository;
         this.electionRepository = electionRepository;
+        this.electionService = electionService;
     }
 
     public CandidateResponseDTO addCandidate(CandidateRequestDTO request) {
@@ -55,6 +59,16 @@ public class CandidateService {
     public List<CandidateResponseDTO> getCandidatesByElectionId(Long electionId) {
         return candidateRepository.findByElectionId(electionId)
                 .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    public List<CandidateResponseDTO> getCandidatesForActiveElection() {
+        ElectionResponseDTO activeElection = electionService.getActiveElection();
+
+        List<Candidate> candidates = candidateRepository.findByElectionId(activeElection.getId());
+
+        return candidates.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

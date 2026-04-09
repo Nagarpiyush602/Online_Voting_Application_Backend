@@ -34,23 +34,32 @@ public class CandidateController {
 	public ResponseEntity<CandidateResponseDTO> addCandidate(@RequestBody @Valid CandidateRequestDTO request){
 		return new ResponseEntity<>(candidateService.addCandidate(request),HttpStatus.CREATED);
 	}
+	
 	@GetMapping("/{id}")
 	public ResponseEntity<CandidateResponseDTO> getCandidateById(@PathVariable Long id) {
 	    return ResponseEntity.ok(candidateService.getCandidateById(id));
+	}
+	
+	@GetMapping("/active-election")
+	public ResponseEntity<List<CandidateResponseDTO>> getCandidatesForActiveElection() {
+	    return ResponseEntity.ok(candidateService.getCandidatesForActiveElection());
 	}
 	
 	@GetMapping()
 	public ResponseEntity<List<CandidateResponseDTO>> getAllCandidates(){
 		return ResponseEntity.ok(candidateService.getAllCandidates());
 	}
+	
 	@GetMapping("/election/{electionId}")
 	public ResponseEntity<List<CandidateResponseDTO>> getCandidatesByElectionId(@PathVariable Long electionId) {
 		return new ResponseEntity<>(candidateService.getCandidatesByElectionId(electionId), HttpStatus.OK);
 	}
+	
 	@PutMapping("/update/{id}")
 	public ResponseEntity<CandidateResponseDTO> updateCandidate(@PathVariable Long id,@RequestBody CandidateRequestDTO request){
 		return ResponseEntity.ok(candidateService.updateCandidate(id,request));
-		}
+	}
+	
 	@DeleteMapping("/delete/{id}")
 	public ResponseEntity<String> deleteCandidate(@PathVariable Long id){
 		candidateService.deleteCandidate(id);

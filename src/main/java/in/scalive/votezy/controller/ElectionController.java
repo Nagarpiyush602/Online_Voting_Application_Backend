@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.service.ElectionService;
 import jakarta.validation.Valid;
@@ -19,6 +20,11 @@ public class ElectionController {
 
     public ElectionController(ElectionService electionService) {
         this.electionService = electionService;
+    }
+    
+    @GetMapping("/active")
+    public ResponseEntity<ElectionResponseDTO> getActiveElection(){
+    	return ResponseEntity.ok(electionService.getActiveElection());
     }
 
     @PostMapping("/add")

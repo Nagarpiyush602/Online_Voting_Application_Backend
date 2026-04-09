@@ -8,14 +8,23 @@ import lombok.Data;
 
 @Data
 public class ElectionResultResponseDTO {
+	
 	private Long electionId;
+	
 	private String electionName;
+	
 	private int totalVotes;
+	
 	private ResultStatus resultStatus;
+	
 	private String winnerName;
+	
 	private int winnerVotes;
+	
 	private List<String> tiedCandidates;
+	
 	private LocalDateTime declaredAt;
+	
 	private String message;
 	
 }

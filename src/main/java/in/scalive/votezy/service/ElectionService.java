@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.ElectionStatus;
 import in.scalive.votezy.exception.ResourceNotFoundException;
@@ -44,6 +45,20 @@ public class ElectionService {
         return election;
     }
 
+    public ElectionResponseDTO getActiveElection() {
+        List<Election> activeElections = electionRepository.findByStatus(ElectionStatus.ACTIVE);
+
+        if (activeElections.isEmpty()) {
+            throw new ResourceNotFoundException("No active election found");
+        }
+
+        if (activeElections.size() > 1) {
+            throw new RuntimeException("Multiple active elections found");
+        }
+
+        return convertToDTO(activeElections.get(0));
+    }
+    
     private ElectionStatus calculateStatus(Election election) {
         LocalDateTime now = LocalDateTime.now();
 
@@ -56,5 +71,9 @@ public class ElectionService {
         }
 
         return ElectionStatus.ACTIVE;
+    }
+    
+    private ElectionResponseDTO convertToDTO(Election election) {
+        return new ElectionResponseDTO(election.getId(),election.getName(),election.getStartTime(),election.getEndTime(),calculateStatus(election));
     }
 }

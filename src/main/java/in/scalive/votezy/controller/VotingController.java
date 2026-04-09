@@ -1,6 +1,7 @@
 package in.scalive.votezy.controller;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import in.scalive.votezy.dto.VoteRequestDTO;
@@ -34,11 +36,16 @@ public class VotingController {
     	VoteResponseDTO voteResponse = votingService.castVote(voteRequest);
         return new ResponseEntity<>(voteResponse, HttpStatus.CREATED);
     }
+    
+    @GetMapping("/check")
+    public ResponseEntity<Map<String, Boolean>> checkVoteStatus(@RequestParam Long voterId,@RequestParam Long electionId) {
+        boolean hasVoted = votingService.hasVoted(voterId, electionId);
+        return ResponseEntity.ok(Map.of("hasVoted", hasVoted));
+    }
 
     @GetMapping
     public ResponseEntity<List<VoteResponseDTO>> getAllVotes() {
         List<Vote> votes = votingService.getAllVotes();
-
         List<VoteResponseDTO> response = votes.stream()
                 .map(vote -> new VoteResponseDTO(
                         "Vote fetched successfully",
@@ -48,7 +55,6 @@ public class VotingController {
                         vote.getElection().getId()
                 ))
                 .toList();
-
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

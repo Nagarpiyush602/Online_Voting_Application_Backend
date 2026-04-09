@@ -8,10 +8,15 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VoteResponseDTO {
+	
     private String message;
+    
     private boolean success;
+    
     private Long voterId;
+    
     private Long candidateId;
+    
     private Long electionId;
 
     

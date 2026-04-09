@@ -28,22 +28,27 @@ public class VoterController {
 	public VoterController(VoterService voterService) {
 		this.voterService = voterService;
 	}
+	
 	@PostMapping("/register")
 	public ResponseEntity<VoterResponseDTO> registerVoter(@RequestBody @Valid VoterRequestDTO dto) {
 		return new ResponseEntity<>(voterService.registerVoter(dto),HttpStatus.CREATED);
 	}
+	
 	@GetMapping("/{id}")
 	public ResponseEntity<VoterResponseDTO> getVoterById(@PathVariable Long id){
 		return new ResponseEntity<>(voterService.getVoterById(id),HttpStatus.OK);
 	}
+	
 	@GetMapping()
 	public ResponseEntity<List<VoterResponseDTO>> getAllVoters(){
 		return new ResponseEntity<>(voterService.getAllVoters(),HttpStatus.OK);
 	}
+	
 	@PutMapping("/update/{id}")
 	public ResponseEntity<VoterResponseDTO> upadeteVoters(@PathVariable Long id,@RequestBody VoterRequestDTO dto){
 		return new ResponseEntity<>(voterService.updateVoter(id,dto),HttpStatus.OK);
 	}
+	
 	@DeleteMapping("/delete/{id}")
 	public ResponseEntity<String> deleteVoter(@PathVariable Long id){
 		voterService.deleteVoter(id);

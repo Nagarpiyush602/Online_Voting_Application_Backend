@@ -14,21 +14,25 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+	
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<ErrorResponse> handlerResourceNotFoundException(ResourceNotFoundException ex){
 		ErrorResponse err = new ErrorResponse(HttpStatus.NOT_FOUND.value(),ex.getMessage());
 		return new ResponseEntity<>(err,HttpStatus.NOT_FOUND);
 	}
+	
 	@ExceptionHandler(DuplicateResourceException.class)  
 	public ResponseEntity<ErrorResponse> handlerDuplicateResourceException(DuplicateResourceException ex){
 		ErrorResponse err = new ErrorResponse(HttpStatus.CONFLICT.value(),ex.getMessage());
 		return new ResponseEntity<>(err,HttpStatus.CONFLICT);
 	}
+	
 	@ExceptionHandler(VoteNotAllowedException.class)
 	public ResponseEntity<ErrorResponse> handlerVoteNotAllowedException(VoteNotAllowedException ex){
 		ErrorResponse err = new ErrorResponse(HttpStatus.FORBIDDEN.value(),ex.getMessage());
 		return new ResponseEntity<>(err,HttpStatus.FORBIDDEN);
 	}	
+	
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<Map<String,String>> handlerMethodArgumentNotValidException(MethodArgumentNotValidException ex){
 		Map<String,String> errors = new HashMap<>();
@@ -39,6 +43,7 @@ public class GlobalExceptionHandler {
 		}
 		return new ResponseEntity<>(errors,HttpStatus.BAD_REQUEST);
 	}
+	
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorResponse> handlerGeneralException(Exception ex){
 		ErrorResponse err = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage());

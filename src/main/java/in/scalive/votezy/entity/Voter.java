@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Voter {
+	
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private long id;
@@ -33,7 +35,7 @@ public class Voter {
 	@Email(message="Invalid email format")
 	private String email;
 	
-	@OneToOne(mappedBy="voter",cascade=CascadeType.ALL)
+	@OneToMany(mappedBy="voter",cascade=CascadeType.ALL)
 	@JsonIgnore
 	private Vote votes;
 }

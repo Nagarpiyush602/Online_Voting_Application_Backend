@@ -19,10 +19,12 @@ import jakarta.transaction.Transactional;
 public class VoterService {
 	private VoterRepository voterRepository;
 	private CandidateRepository candidateRepository;
+	
 	public VoterService(VoterRepository voterRepository, CandidateRepository candidateRepository) {
 		this.voterRepository = voterRepository;
 		this.candidateRepository = candidateRepository;
 	}
+	
 	public VoterResponseDTO registerVoter(VoterRequestDTO dto) {
 		if(voterRepository.existsByEmail(dto.getEmail())) {
 			throw new DuplicateResourceException("voter with email id"+dto.getEmail()+" already exists"); 
@@ -33,9 +35,11 @@ public class VoterService {
 		Voter saved = voterRepository.save(voter);
 		return mapToResponseDTO(saved);
 	}
+	
 	public List<VoterResponseDTO> getAllVoters(){
 		return voterRepository.findAll().stream().map(this::mapToResponseDTO).toList();
 	}
+	
 	public VoterResponseDTO getVoterById(Long id) {
 		Voter voter = voterRepository.findById(id).orElse(null);
 		if(voter==null) {
@@ -43,6 +47,7 @@ public class VoterService {
 		}
 		return mapToResponseDTO(voter);
 	}
+	
 	public VoterResponseDTO updateVoter(Long id,VoterRequestDTO dto) {
 		Voter voter = voterRepository.findById(id).orElse(null);
 		if(voter==null) {
@@ -72,6 +77,7 @@ public class VoterService {
 		}
 		voterRepository.delete(voter);
 	}
+	
 	private VoterResponseDTO mapToResponseDTO(Voter voter) {
 		VoterResponseDTO dto = new VoterResponseDTO();
 		dto.setId(voter.getId());
