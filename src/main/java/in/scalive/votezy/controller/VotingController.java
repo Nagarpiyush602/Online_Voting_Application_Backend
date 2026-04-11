@@ -2,18 +2,12 @@ package in.scalive.votezy.controller;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import in.scalive.votezy.dto.ApiResponse;
 import in.scalive.votezy.dto.VoteRequestDTO;
 import in.scalive.votezy.dto.VoteResponseDTO;
 import in.scalive.votezy.entity.Vote;
@@ -25,27 +19,37 @@ import jakarta.validation.Valid;
 @CrossOrigin(origins = "https://nagarpiyush602.github.io")
 public class VotingController {
 
-    private VotingService votingService;
+    private final VotingService votingService;
 
     public VotingController(VotingService votingService) {
         this.votingService = votingService;
     }
 
     @PostMapping("/cast")
-    public ResponseEntity<VoteResponseDTO> castVote(@RequestBody @Valid VoteRequestDTO voteRequest) {
-    	VoteResponseDTO voteResponse = votingService.castVote(voteRequest);
-        return new ResponseEntity<>(voteResponse, HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<VoteResponseDTO>> castVote(@RequestBody @Valid VoteRequestDTO voteRequest) {
+        VoteResponseDTO voteResponse = votingService.castVote(voteRequest);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "Vote cast successfully", voteResponse));
     }
-    
+
     @GetMapping("/check")
-    public ResponseEntity<Map<String, Boolean>> checkVoteStatus(@RequestParam Long voterId,@RequestParam Long electionId) {
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkVoteStatus(
+            @RequestParam Long voterId,
+            @RequestParam Long electionId) {
+
         boolean hasVoted = votingService.hasVoted(voterId, electionId);
-        return ResponseEntity.ok(Map.of("hasVoted", hasVoted));
+        Map<String, Boolean> response = Map.of("hasVoted", hasVoted);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Vote status fetched successfully", response)
+        );
     }
 
     @GetMapping
-    public ResponseEntity<List<VoteResponseDTO>> getAllVotes() {
+    public ResponseEntity<ApiResponse<List<VoteResponseDTO>>> getAllVotes() {
         List<Vote> votes = votingService.getAllVotes();
+
         List<VoteResponseDTO> response = votes.stream()
                 .map(vote -> new VoteResponseDTO(
                         "Vote fetched successfully",
@@ -55,6 +59,9 @@ public class VotingController {
                         vote.getElection().getId()
                 ))
                 .toList();
-        return new ResponseEntity<>(response, HttpStatus.OK);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "All votes fetched successfully", response)
+        );
     }
 }

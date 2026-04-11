@@ -12,12 +12,15 @@ import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.ElectionResult;
 import in.scalive.votezy.entity.ElectionStatus;
 import in.scalive.votezy.entity.ResultStatus;
+import in.scalive.votezy.entity.Role;
+import in.scalive.votezy.entity.Voter;
 import in.scalive.votezy.exception.ResourceNotFoundException;
 import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.CandidateRepository;
 import in.scalive.votezy.repository.ElectionRepository;
 import in.scalive.votezy.repository.ElectionResultRepository;
 import in.scalive.votezy.repository.VoteRepository;
+import in.scalive.votezy.repository.VoterRepository;
 
 @Service
 public class ElectionResultService {
@@ -26,19 +29,22 @@ public class ElectionResultService {
     private final ElectionResultRepository electionResultRepository;
     private final VoteRepository voteRepository;
     private final CandidateRepository candidateRepository;
+    private final VoterRepository voterRepository;
 
     public ElectionResultService(ElectionRepository electionRepository,
                                  ElectionResultRepository electionResultRepository,
+                                 VoterRepository voterRepository,
                                  VoteRepository voteRepository,
                                  CandidateRepository candidateRepository) {
         this.electionRepository = electionRepository;
         this.electionResultRepository = electionResultRepository;
         this.voteRepository = voteRepository;
         this.candidateRepository = candidateRepository;
+        this.voterRepository = voterRepository;
     }
 
-    public ElectionResultResponseDTO declareElectionResult(Long electionId) {
-
+    public ElectionResultResponseDTO declareElectionResult(Long electionId,Long adminId) {
+    	validateAdmin(adminId);
         Election election = electionRepository.findById(electionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + electionId));
 
@@ -120,6 +126,15 @@ public class ElectionResultService {
                 .orElseThrow(() -> new ResourceNotFoundException("Result not found for election id: " + electionId));
 
         return convertToDTO(result);
+    }
+    
+    private void validateAdmin(Long adminId) {
+        Voter voter = voterRepository.findById(adminId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + adminId));
+
+        if (voter.getRole() != Role.ADMIN) {
+            throw new VoteNotAllowedException("Only admin can perform this action");
+        }
     }
 
     private ElectionResultResponseDTO convertToDTO(ElectionResult result) {

@@ -8,19 +8,26 @@ import org.springframework.stereotype.Service;
 import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.ElectionStatus;
+import in.scalive.votezy.entity.Role;
+import in.scalive.votezy.entity.Voter;
 import in.scalive.votezy.exception.ResourceNotFoundException;
+import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.ElectionRepository;
+import in.scalive.votezy.repository.VoterRepository;
 
 @Service
 public class ElectionService {
 
     private final ElectionRepository electionRepository;
+    private final VoterRepository voterRepository;
 
-    public ElectionService(ElectionRepository electionRepository) {
+    public ElectionService(ElectionRepository electionRepository,VoterRepository voterRepository) {
         this.electionRepository = electionRepository;
+        this.voterRepository = voterRepository;
     }
 
-    public Election createElection(Election election) {
+    public Election createElection(Election election,Long adminId) {
+    	validateAdmin(adminId);
         if (election.getEndTime().isBefore(election.getStartTime())) {
             throw new IllegalArgumentException("End time must be after start time");
         }
@@ -71,6 +78,13 @@ public class ElectionService {
         }
 
         return ElectionStatus.ACTIVE;
+    }
+    private void validateAdmin(Long adminId){
+    	Voter voter = voterRepository.findById(adminId).orElseThrow(()->new ResourceNotFoundException("User not found with id: " +adminId));
+    	if(voter.getRole()!=Role.ADMIN) {
+    		throw new VoteNotAllowedException("Only admin can perform this action");
+    	}
+    	
     }
     
     private ElectionResponseDTO convertToDTO(Election election) {

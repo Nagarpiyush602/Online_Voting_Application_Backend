@@ -11,9 +11,13 @@ import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.ElectionStatus;
+import in.scalive.votezy.entity.Role;
+import in.scalive.votezy.entity.Voter;
 import in.scalive.votezy.exception.ResourceNotFoundException;
+import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.CandidateRepository;
 import in.scalive.votezy.repository.ElectionRepository;
+import in.scalive.votezy.repository.VoterRepository;
 
 @Service
 public class CandidateService {
@@ -21,14 +25,17 @@ public class CandidateService {
     private CandidateRepository candidateRepository;
     private ElectionRepository electionRepository;
     private final ElectionService electionService;
+    private final VoterRepository voterRepository;
 
-    public CandidateService(CandidateRepository candidateRepository, ElectionRepository electionRepository,ElectionService electionService) {
+    public CandidateService(CandidateRepository candidateRepository,VoterRepository voterRepository, ElectionRepository electionRepository,ElectionService electionService) {
         this.candidateRepository = candidateRepository;
         this.electionRepository = electionRepository;
         this.electionService = electionService;
+        this.voterRepository = voterRepository;
     }
 
-    public CandidateResponseDTO addCandidate(CandidateRequestDTO request) {
+    public CandidateResponseDTO addCandidate(CandidateRequestDTO request,Long adminId) {
+    	validateAdmin(adminId);
         Election election = electionRepository.findById(request.getElectionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + request.getElectionId()));
 
@@ -95,6 +102,14 @@ public class CandidateService {
         candidateRepository.delete(candidate);
     }
 
+    private void validateAdmin(Long adminId){
+    	Voter voter = voterRepository.findById(adminId).orElseThrow(()->new ResourceNotFoundException("User not found with id: " +adminId));
+    	if(voter.getRole()!=Role.ADMIN) {
+    		throw new VoteNotAllowedException("Only admin can perform this action");
+    	}
+    	
+    }
+    
     private CandidateResponseDTO convertToDTO(Candidate candidate) {
         CandidateResponseDTO response = new CandidateResponseDTO();
         response.setId(candidate.getId());

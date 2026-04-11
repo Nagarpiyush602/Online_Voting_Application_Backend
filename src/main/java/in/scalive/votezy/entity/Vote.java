@@ -20,19 +20,16 @@ public class Vote {
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
 	
-	@OneToOne
-	@JoinColumn(name="voter_id",unique=true)
-	@JsonIgnore
+	@ManyToOne
+	@JoinColumn(name="voter_id",nullable =false)
 	private Voter voter;
 	
 	@ManyToOne
-	@JoinColumn(name="candidate_id")
-	@JsonIgnore
+	@JoinColumn(name="candidate_id",nullable=false)
 	private Candidate candidate;
 	
 	@ManyToOne
-	@JsonIgnore
-	@JoinColumn(name="election_id")
+	@JoinColumn(name="election_id",nullable=false)
 	private Election election;
 	
 	@JsonProperty("voterId")

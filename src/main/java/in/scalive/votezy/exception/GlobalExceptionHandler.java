@@ -9,44 +9,51 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@ControllerAdvice
+import in.scalive.votezy.dto.ApiResponse;
+
+@RestControllerAdvice
 public class GlobalExceptionHandler {
-	
-	@ExceptionHandler(ResourceNotFoundException.class)
-	public ResponseEntity<ErrorResponse> handlerResourceNotFoundException(ResourceNotFoundException ex){
-		ErrorResponse err = new ErrorResponse(HttpStatus.NOT_FOUND.value(),ex.getMessage());
-		return new ResponseEntity<>(err,HttpStatus.NOT_FOUND);
-	}
-	
-	@ExceptionHandler(DuplicateResourceException.class)  
-	public ResponseEntity<ErrorResponse> handlerDuplicateResourceException(DuplicateResourceException ex){
-		ErrorResponse err = new ErrorResponse(HttpStatus.CONFLICT.value(),ex.getMessage());
-		return new ResponseEntity<>(err,HttpStatus.CONFLICT);
-	}
-	
-	@ExceptionHandler(VoteNotAllowedException.class)
-	public ResponseEntity<ErrorResponse> handlerVoteNotAllowedException(VoteNotAllowedException ex){
-		ErrorResponse err = new ErrorResponse(HttpStatus.FORBIDDEN.value(),ex.getMessage());
-		return new ResponseEntity<>(err,HttpStatus.FORBIDDEN);
-	}	
-	
-	@ExceptionHandler(MethodArgumentNotValidException.class)
-	public ResponseEntity<Map<String,String>> handlerMethodArgumentNotValidException(MethodArgumentNotValidException ex){
-		Map<String,String> errors = new HashMap<>();
-		BindingResult bResult = ex.getBindingResult();
-		List<FieldError> errorList = bResult.getFieldErrors();
-		for(FieldError error:errorList) {
-			errors.put(error.getField(),error.getDefaultMessage());
-		}
-		return new ResponseEntity<>(errors,HttpStatus.BAD_REQUEST);
-	}
-	
-	@ExceptionHandler(Exception.class)
-	public ResponseEntity<ErrorResponse> handlerGeneralException(Exception ex){
-		ErrorResponse err = new ErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(),ex.getMessage());
-		return new ResponseEntity<>(err,HttpStatus.INTERNAL_SERVER_ERROR);
-	}	
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResourceNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDuplicateResource(DuplicateResourceException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(VoteNotAllowedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleVoteNotAllowed(VoteNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiResponse<>(false, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(MethodArgumentNotValidException ex) {
+
+        Map<String, String> errors = new HashMap<>();
+
+        BindingResult bResult = ex.getBindingResult();
+        List<FieldError> errorList = bResult.getFieldErrors();
+
+        for (FieldError error : errorList) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ApiResponse<>(false, "Validation failed", errors));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Object>> handleGeneralException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(false, "Something went wrong", null));
+    }
 }

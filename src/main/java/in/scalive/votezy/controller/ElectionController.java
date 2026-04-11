@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import in.scalive.votezy.dto.ApiResponse;
 import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.service.ElectionService;
@@ -21,25 +22,39 @@ public class ElectionController {
     public ElectionController(ElectionService electionService) {
         this.electionService = electionService;
     }
-    
+
     @GetMapping("/active")
-    public ResponseEntity<ElectionResponseDTO> getActiveElection(){
-    	return ResponseEntity.ok(electionService.getActiveElection());
+    public ResponseEntity<ApiResponse<ElectionResponseDTO>> getActiveElection() {
+        ElectionResponseDTO response = electionService.getActiveElection();
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Active election fetched successfully", response)
+        );
     }
 
     @PostMapping("/add")
-    public ResponseEntity<Election> createElection(@RequestBody @Valid Election election) {
-        Election savedElection = electionService.createElection(election);
-        return new ResponseEntity<>(savedElection, HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<Election>> createElection(@RequestBody @Valid Election election,@RequestParam Long adminId) {
+        Election savedElection = electionService.createElection(election,adminId);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "Election created successfully", savedElection));
     }
 
     @GetMapping
-    public ResponseEntity<List<Election>> getAllElections() {
-        return ResponseEntity.ok(electionService.getAllElections());
+    public ResponseEntity<ApiResponse<List<Election>>> getAllElections() {
+        List<Election> elections = electionService.getAllElections();
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "All elections fetched successfully", elections)
+        );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Election> getElectionById(@PathVariable Long id) {
-        return ResponseEntity.ok(electionService.getElectionById(id));
+    public ResponseEntity<ApiResponse<Election>> getElectionById(@PathVariable Long id) {
+        Election election = electionService.getElectionById(id);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Election fetched successfully", election)
+        );
     }
 }

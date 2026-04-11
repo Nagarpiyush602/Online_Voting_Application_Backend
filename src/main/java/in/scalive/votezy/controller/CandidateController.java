@@ -4,16 +4,9 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import in.scalive.votezy.dto.ApiResponse;
 import in.scalive.votezy.dto.CandidateRequestDTO;
 import in.scalive.votezy.dto.CandidateResponseDTO;
 import in.scalive.votezy.service.CandidateService;
@@ -21,49 +14,81 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/candidates")
-
 @CrossOrigin(origins = "https://nagarpiyush602.github.io")
 public class CandidateController {
-	private CandidateService candidateService;
 
-	public CandidateController(CandidateService candidateService) {
-		this.candidateService = candidateService;
-	}
-	
-	@PostMapping("/add")
-	public ResponseEntity<CandidateResponseDTO> addCandidate(@RequestBody @Valid CandidateRequestDTO request){
-		return new ResponseEntity<>(candidateService.addCandidate(request),HttpStatus.CREATED);
-	}
-	
-	@GetMapping("/{id}")
-	public ResponseEntity<CandidateResponseDTO> getCandidateById(@PathVariable Long id) {
-	    return ResponseEntity.ok(candidateService.getCandidateById(id));
-	}
-	
-	@GetMapping("/active-election")
-	public ResponseEntity<List<CandidateResponseDTO>> getCandidatesForActiveElection() {
-	    return ResponseEntity.ok(candidateService.getCandidatesForActiveElection());
-	}
-	
-	@GetMapping()
-	public ResponseEntity<List<CandidateResponseDTO>> getAllCandidates(){
-		return ResponseEntity.ok(candidateService.getAllCandidates());
-	}
-	
-	@GetMapping("/election/{electionId}")
-	public ResponseEntity<List<CandidateResponseDTO>> getCandidatesByElectionId(@PathVariable Long electionId) {
-		return new ResponseEntity<>(candidateService.getCandidatesByElectionId(electionId), HttpStatus.OK);
-	}
-	
-	@PutMapping("/update/{id}")
-	public ResponseEntity<CandidateResponseDTO> updateCandidate(@PathVariable Long id,@RequestBody CandidateRequestDTO request){
-		return ResponseEntity.ok(candidateService.updateCandidate(id,request));
-	}
-	
-	@DeleteMapping("/delete/{id}")
-	public ResponseEntity<String> deleteCandidate(@PathVariable Long id){
-		candidateService.deleteCandidate(id);
-		return ResponseEntity.ok("Candidate with id:"+id+" deleted successfully");
-	}
-	
+    private final CandidateService candidateService;
+
+    public CandidateController(CandidateService candidateService) {
+        this.candidateService = candidateService;
+    }
+
+    @PostMapping("/add")
+    public ResponseEntity<ApiResponse<CandidateResponseDTO>> addCandidate(
+            @RequestBody @Valid CandidateRequestDTO request,@RequestParam Long adminId) {
+
+        CandidateResponseDTO response = candidateService.addCandidate(request,adminId);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "Candidate added successfully", response));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<CandidateResponseDTO>> getCandidateById(@PathVariable Long id) {
+        CandidateResponseDTO response = candidateService.getCandidateById(id);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Candidate fetched successfully", response)
+        );
+    }
+
+    @GetMapping("/active-election")
+    public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getCandidatesForActiveElection() {
+        List<CandidateResponseDTO> response = candidateService.getCandidatesForActiveElection();
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Active election candidates fetched successfully", response)
+        );
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getAllCandidates() {
+        List<CandidateResponseDTO> response = candidateService.getAllCandidates();
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "All candidates fetched successfully", response)
+        );
+    }
+
+    @GetMapping("/election/{electionId}")
+    public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getCandidatesByElectionId(
+            @PathVariable Long electionId) {
+
+        List<CandidateResponseDTO> response = candidateService.getCandidatesByElectionId(electionId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Candidates fetched successfully for election", response)
+        );
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<ApiResponse<CandidateResponseDTO>> updateCandidate(
+            @PathVariable Long id,
+            @RequestBody CandidateRequestDTO request) {
+
+        CandidateResponseDTO response = candidateService.updateCandidate(id, request);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Candidate updated successfully", response)
+        );
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<ApiResponse<Object>> deleteCandidate(@PathVariable Long id) {
+        candidateService.deleteCandidate(id);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Candidate with id: " + id + " deleted successfully", null)
+        );
+    }
 }
