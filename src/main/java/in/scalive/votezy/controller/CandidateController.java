@@ -74,9 +74,10 @@ public class CandidateController {
     @PutMapping("/update/{id}")
     public ResponseEntity<ApiResponse<CandidateResponseDTO>> updateCandidate(
             @PathVariable Long id,
-            @RequestBody CandidateRequestDTO request) {
+            @RequestBody @Valid CandidateRequestDTO request,
+            @RequestParam Long adminId) {
 
-        CandidateResponseDTO response = candidateService.updateCandidate(id, request);
+        CandidateResponseDTO response = candidateService.updateCandidate(id, request,adminId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Candidate updated successfully", response)
@@ -84,8 +85,8 @@ public class CandidateController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<ApiResponse<Object>> deleteCandidate(@PathVariable Long id) {
-        candidateService.deleteCandidate(id);
+    public ResponseEntity<ApiResponse<Object>> deleteCandidate(@PathVariable Long id,@RequestParam Long adminId) {
+        candidateService.deleteCandidate(id,adminId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Candidate with id: " + id + " deleted successfully", null)

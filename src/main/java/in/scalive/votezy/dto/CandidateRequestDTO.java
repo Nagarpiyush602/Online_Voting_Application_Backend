@@ -15,4 +15,5 @@ public class CandidateRequestDTO {
     
     @NotNull(message="Election ID is required")
     private Long electionId;
+    
 }

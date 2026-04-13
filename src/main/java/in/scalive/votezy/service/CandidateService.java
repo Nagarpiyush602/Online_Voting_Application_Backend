@@ -22,8 +22,8 @@ import in.scalive.votezy.repository.VoterRepository;
 @Service
 public class CandidateService {
 
-    private CandidateRepository candidateRepository;
-    private ElectionRepository electionRepository;
+    private final CandidateRepository candidateRepository;
+    private final ElectionRepository electionRepository;
     private final ElectionService electionService;
     private final VoterRepository voterRepository;
 
@@ -36,12 +36,17 @@ public class CandidateService {
 
     public CandidateResponseDTO addCandidate(CandidateRequestDTO request,Long adminId) {
     	validateAdmin(adminId);
+    	
         Election election = electionRepository.findById(request.getElectionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + request.getElectionId()));
-
+        String normalizedName = request.getName().trim();
+        String normalizedParty = request.getParty().trim();
+    	if(candidateRepository.existsByPartyIgnoreCaseAndElection(normalizedParty,election)) {
+    		throw new VoteNotAllowedException("Party '" +normalizedParty+ "' alredy has a candidate in this election");
+    	}
         Candidate candidate = new Candidate();
-        candidate.setName(request.getName());
-        candidate.setParty(request.getParty());
+        candidate.setName(normalizedName);
+        candidate.setParty(normalizedParty);
         candidate.setVoteCount(0);
         candidate.setElection(election);
 
@@ -80,22 +85,29 @@ public class CandidateService {
                 .collect(Collectors.toList());
     }
 
-    public CandidateResponseDTO updateCandidate(Long id, CandidateRequestDTO request) {
+    public CandidateResponseDTO updateCandidate(Long id, CandidateRequestDTO request,Long adminId) {
+    	validateAdmin(adminId);
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with id: " + id));
 
         Election election = electionRepository.findById(request.getElectionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + request.getElectionId()));
 
-        candidate.setName(request.getName());
-        candidate.setParty(request.getParty());
+        String normalizedName = request.getName().trim();
+        String normalizedParty = request.getParty().trim();
+        if(candidateRepository.existsByPartyIgnoreCaseAndElectionAndIdNot(normalizedParty, election, id)) {
+        	throw new VoteNotAllowedException("Party '" +normalizedParty+ "' already has another candidate in this election");
+        }
+        candidate.setName(normalizedName);
+        candidate.setParty(normalizedParty);
         candidate.setElection(election);
 
         Candidate updatedCandidate = candidateRepository.save(candidate);
         return convertToDTO(updatedCandidate);
     }
 
-    public void deleteCandidate(Long id) {
+    public void deleteCandidate(Long id,Long adminId) {
+    	validateAdmin(adminId);
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with id: " + id));
 
