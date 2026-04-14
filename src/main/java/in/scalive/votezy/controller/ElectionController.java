@@ -7,8 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import in.scalive.votezy.dto.ApiResponse;
+import in.scalive.votezy.dto.ElectionRequestDTO;
 import in.scalive.votezy.dto.ElectionResponseDTO;
-import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.service.ElectionService;
 import jakarta.validation.Valid;
 
@@ -33,16 +33,44 @@ public class ElectionController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<ApiResponse<Election>> createElection(@RequestBody @Valid Election election,@RequestParam Long adminId) {
-        Election savedElection = electionService.createElection(election,adminId);
+    public ResponseEntity<ApiResponse<ElectionResponseDTO>> createElection(
+            @RequestBody @Valid ElectionRequestDTO request,
+            @RequestParam Long adminId) {
+
+        ElectionResponseDTO response = electionService.createElection(request, adminId);
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Election created successfully", savedElection));
+                .body(new ApiResponse<>(true, "Election created successfully", response));
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<ApiResponse<ElectionResponseDTO>> updateElection(
+            @PathVariable Long id,
+            @RequestBody @Valid ElectionRequestDTO request,
+            @RequestParam Long adminId) {
+
+        ElectionResponseDTO response = electionService.updateElection(id, request, adminId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Election updated successfully", response)
+        );
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteElection(
+            @PathVariable Long id,
+            @RequestParam Long adminId) {
+
+        electionService.deleteElection(id, adminId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Election deleted successfully", "Election removed")
+        );
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Election>>> getAllElections() {
-        List<Election> elections = electionService.getAllElections();
+    public ResponseEntity<ApiResponse<List<ElectionResponseDTO>>> getAllElections() {
+        List<ElectionResponseDTO> elections = electionService.getAllElections();
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "All elections fetched successfully", elections)
@@ -50,8 +78,8 @@ public class ElectionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Election>> getElectionById(@PathVariable Long id) {
-        Election election = electionService.getElectionById(id);
+    public ResponseEntity<ApiResponse<ElectionResponseDTO>> getElectionById(@PathVariable Long id) {
+        ElectionResponseDTO election = electionService.getElectionById(id);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Election fetched successfully", election)
