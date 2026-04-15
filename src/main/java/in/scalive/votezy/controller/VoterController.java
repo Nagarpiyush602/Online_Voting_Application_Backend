@@ -34,8 +34,8 @@ public class VoterController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<VoterResponseDTO>> getVoterById(@PathVariable Long id) {
-        VoterResponseDTO response = voterService.getVoterById(id);
+    public ResponseEntity<ApiResponse<VoterResponseDTO>> getVoterById(@PathVariable Long id,@RequestParam Long adminId) {
+        VoterResponseDTO response = voterService.getVoterById(id,adminId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Voter fetched successfully", response)
@@ -43,8 +43,8 @@ public class VoterController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<VoterResponseDTO>>> getAllVoters() {
-        List<VoterResponseDTO> response = voterService.getAllVoters();
+    public ResponseEntity<ApiResponse<List<VoterResponseDTO>>> getAllVoters(@RequestParam Long adminId) {
+        List<VoterResponseDTO> response = voterService.getAllVoters(adminId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "All voters fetched successfully", response)
@@ -54,9 +54,10 @@ public class VoterController {
     @PutMapping("/update/{id}")
     public ResponseEntity<ApiResponse<VoterResponseDTO>> upadeteVoters(
             @PathVariable Long id,
-            @RequestBody VoterRequestDTO dto) {
+            @RequestBody VoterRequestDTO dto,
+            @RequestParam Long adminId) {
 
-        VoterResponseDTO response = voterService.updateVoter(id, dto);
+        VoterResponseDTO response = voterService.updateVoter(id, dto,adminId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Voter updated successfully", response)
@@ -64,8 +65,8 @@ public class VoterController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<ApiResponse<Object>> deleteVoter(@PathVariable Long id) {
-        voterService.deleteVoter(id);
+    public ResponseEntity<ApiResponse<Object>> deleteVoter(@PathVariable Long id,@RequestParam Long adminId) {
+        voterService.deleteVoter(id,adminId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Voter with id: " + id + " deleted successfully", null)

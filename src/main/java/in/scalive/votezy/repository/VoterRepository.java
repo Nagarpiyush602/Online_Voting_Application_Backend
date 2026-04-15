@@ -6,5 +6,6 @@ import in.scalive.votezy.entity.Voter;
 
 public interface VoterRepository extends JpaRepository<Voter,Long>{
 	
+	boolean existsByEmailAndIdNot(String email,Long id); 
 	boolean existsByEmail(String email);
 }
