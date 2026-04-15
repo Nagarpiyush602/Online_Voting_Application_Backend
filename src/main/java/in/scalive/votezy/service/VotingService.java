@@ -10,9 +10,12 @@ import in.scalive.votezy.dto.VoteResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.ElectionStatus;
+import in.scalive.votezy.entity.Role;
 import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.entity.Voter;
+import in.scalive.votezy.exception.InvalidRequestException;
 import in.scalive.votezy.exception.ResourceNotFoundException;
+import in.scalive.votezy.exception.UnauthorizedActionException;
 import in.scalive.votezy.repository.CandidateRepository;
 import in.scalive.votezy.repository.ElectionRepository;
 import in.scalive.votezy.repository.VoteRepository;
@@ -38,8 +41,11 @@ public class VotingService {
 
     public VoteResponseDTO castVote(VoteRequestDTO request) {
         Voter voter = voterRepository.findById(request.getVoterId())
-                .orElseThrow(() -> new ResourceNotFoundException("Voter not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Voter not found with id: "+request.getVoterId()));
 
+        if(voter.getRole()!=Role.VOTER) {
+        	throw new UnauthorizedActionException("Only voter are allowed to cast vote");
+        }
         Candidate candidate = candidateRepository.findById(request.getCandidateId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found"));
 
@@ -47,21 +53,21 @@ public class VotingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found"));
 
         if (calculateStatus(election) != ElectionStatus.ACTIVE) {
-            throw new RuntimeException("Election is not active");
+            throw new InvalidRequestException("Vote is allowed only when election is ACTIVE");
         }
 
         LocalDateTime now = LocalDateTime.now();
 
         if (now.isBefore(election.getStartTime()) || now.isAfter(election.getEndTime())) {
-            throw new RuntimeException("Voting is allowed only during election time");
+            throw new InvalidRequestException("Voting is allowed only during election time");
         }
 
-        if (!candidate.getElection().getId().equals(election.getId())) {
-            throw new RuntimeException("Candidate does not belong to this election");
+        if (candidate.getElection()==null || !candidate.getElection().getId().equals(election.getId())) {
+            throw new InvalidRequestException("Candidate does not belong to this election");
         }
 
         if (voteRepository.existsByVoterAndElection(voter, election)) {
-            throw new RuntimeException("Voter has already voted in this election");
+            throw new InvalidRequestException("Voter has already voted in this election");
         }
 
         Vote vote = new Vote();
