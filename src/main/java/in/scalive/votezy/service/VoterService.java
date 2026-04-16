@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.dto.VoterRequestDTO;
 import in.scalive.votezy.dto.VoterResponseDTO;
 import in.scalive.votezy.entity.Role;
@@ -24,9 +25,9 @@ public class VoterService {
     }
 
     public VoterResponseDTO registerVoter(VoterRequestDTO dto) {
-    	String normalizedName = dto.getName().trim();
-    	String normalizedEmail = dto.getEmail().trim();
-    	
+        String normalizedName = dto.getName().trim();
+        String normalizedEmail = dto.getEmail().trim();
+
         if (voterRepository.existsByEmail(normalizedEmail)) {
             throw new DuplicateResourceException("Voter with email id " + normalizedEmail + " already exists");
         }
@@ -40,52 +41,83 @@ public class VoterService {
         return mapToResponseDTO(saved);
     }
 
-    public List<VoterResponseDTO> getAllVoters(Long adminId) {
-    	validateAdmin(adminId);
+    public List<VoterResponseDTO> getAllVoters(CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
         return voterRepository.findAll()
                 .stream()
                 .map(this::mapToResponseDTO)
                 .toList();
     }
 
-    public VoterResponseDTO getVoterById(Long id,Long adminId) {
-    	validateAdmin(adminId);
+    public VoterResponseDTO getVoterById(Long id, CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
         Voter voter = findVoterByIdOrThrow(id);
         return mapToResponseDTO(voter);
     }
 
-    public VoterResponseDTO updateVoter(Long id, VoterRequestDTO dto,Long adminId) {
-    	validateAdmin(adminId);
+    public VoterResponseDTO updateVoter(Long id, VoterRequestDTO dto, CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
         Voter voter = findVoterByIdOrThrow(id);
-        
+
         String normalizedName = dto.getName().trim();
-    	String normalizedEmail = dto.getEmail().trim();
-        
-        if(voterRepository.existsByEmailAndIdNot(normalizedEmail, id)) {
-        	throw new DuplicateResourceException("Email "+ normalizedEmail);
+        String normalizedEmail = dto.getEmail().trim();
+
+        if (voterRepository.existsByEmailAndIdNot(normalizedEmail, id)) {
+            throw new DuplicateResourceException("Email " + normalizedEmail + " already exists");
         }
+
         voter.setName(normalizedName);
         voter.setEmail(normalizedEmail);
+
         Voter updated = voterRepository.save(voter);
         return mapToResponseDTO(updated);
     }
 
     @Transactional
-    public void deleteVoter(Long id,Long adminId) {
-    	validateAdmin(adminId);
+    public void deleteVoter(Long id, CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
         Voter voter = findVoterByIdOrThrow(id);
         voterRepository.delete(voter);
     }
-    
-    private Voter findVoterByIdOrThrow(Long id) {
-    	return voterRepository.findById(id).orElseThrow(()->new ResourceNotFoundException("Voter with id "+id+ " not found"));
+
+    public VoterResponseDTO getMyProfile(CurrentUserDTO currentUser) {
+        Voter voter = findVoterByIdOrThrow(currentUser.getUserId());
+        return mapToResponseDTO(voter);
     }
-    
-    private void validateAdmin(Long adminId) {
-    	Voter voter = voterRepository.findById(adminId).orElseThrow(()->new ResourceNotFoundException("User not found with id: "+adminId));
-    	if(voter.getRole()!=Role.ADMIN) {
-    		throw new UnauthorizedActionException("Only ADMIN can perform this action");
-    	}
+
+    public VoterResponseDTO updateMyProfile(VoterRequestDTO dto, CurrentUserDTO currentUser) {
+        if (currentUser.getRole() != Role.VOTER) {
+            throw new UnauthorizedActionException("Only VOTER can update own profile");
+        }
+
+        Voter voter = findVoterByIdOrThrow(currentUser.getUserId());
+
+        String normalizedName = dto.getName().trim();
+        String normalizedEmail = dto.getEmail().trim();
+
+        if (voterRepository.existsByEmailAndIdNot(normalizedEmail, voter.getId())) {
+            throw new DuplicateResourceException("Email " + normalizedEmail + " already exists");
+        }
+
+        voter.setName(normalizedName);
+        voter.setEmail(normalizedEmail);
+
+        Voter updated = voterRepository.save(voter);
+        return mapToResponseDTO(updated);
+    }
+
+    private Voter findVoterByIdOrThrow(Long id) {
+        return voterRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Voter with id " + id + " not found"));
+    }
+
+    private void validateAdmin(CurrentUserDTO currentUser) {
+        Voter voter = voterRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
+
+        if (voter.getRole() != Role.ADMIN) {
+            throw new UnauthorizedActionException("Only ADMIN can perform this action");
+        }
     }
 
     private VoterResponseDTO mapToResponseDTO(Voter voter) {
