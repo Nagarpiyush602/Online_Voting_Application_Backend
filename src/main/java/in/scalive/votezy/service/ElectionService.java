@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.dto.ElectionRequestDTO;
 import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Election;
@@ -28,8 +29,8 @@ public class ElectionService {
         this.voterRepository = voterRepository;
     }
 
-    public ElectionResponseDTO createElection(ElectionRequestDTO request, Long adminId) {
-        validateAdmin(adminId);
+    public ElectionResponseDTO createElection(ElectionRequestDTO request, CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
 
         Election election = new Election();
         election.setName(request.getName());
@@ -43,8 +44,8 @@ public class ElectionService {
         return convertToDTO(savedElection);
     }
 
-    public ElectionResponseDTO updateElection(Long id, ElectionRequestDTO request, Long adminId) {
-        validateAdmin(adminId);
+    public ElectionResponseDTO updateElection(Long id, ElectionRequestDTO request, CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
 
         Election existingElection = electionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
@@ -60,8 +61,8 @@ public class ElectionService {
         return convertToDTO(updatedElection);
     }
 
-    public void deleteElection(Long id, Long adminId) {
-        validateAdmin(adminId);
+    public void deleteElection(Long id, CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
 
         Election election = electionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
@@ -112,9 +113,9 @@ public class ElectionService {
         return ElectionStatus.ACTIVE;
     }
 
-    private void validateAdmin(Long adminId) {
-        Voter voter = voterRepository.findById(adminId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + adminId));
+    private void validateAdmin(CurrentUserDTO currentUser) {
+        Voter voter = voterRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
 
         if (voter.getRole() != Role.ADMIN) {
             throw new UnauthorizedActionException("Only ADMIN can perform this action");

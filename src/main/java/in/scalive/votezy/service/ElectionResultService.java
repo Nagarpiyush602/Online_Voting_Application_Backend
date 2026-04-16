@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.dto.ElectionResultResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Election;
@@ -43,8 +44,9 @@ public class ElectionResultService {
         this.voterRepository = voterRepository;
     }
 
-    public ElectionResultResponseDTO declareElectionResult(Long electionId,Long adminId) {
-    	validateAdmin(adminId);
+    public ElectionResultResponseDTO declareElectionResult(Long electionId, CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
+
         Election election = electionRepository.findById(electionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + electionId));
 
@@ -127,10 +129,10 @@ public class ElectionResultService {
 
         return convertToDTO(result);
     }
-    
-    private void validateAdmin(Long adminId) {
-        Voter voter = voterRepository.findById(adminId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + adminId));
+
+    private void validateAdmin(CurrentUserDTO currentUser) {
+        Voter voter = voterRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
 
         if (voter.getRole() != Role.ADMIN) {
             throw new VoteNotAllowedException("Only admin can perform this action");

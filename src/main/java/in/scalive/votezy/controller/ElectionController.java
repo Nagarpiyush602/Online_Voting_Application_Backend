@@ -7,9 +7,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import in.scalive.votezy.dto.ApiResponse;
+import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.dto.ElectionRequestDTO;
 import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.service.ElectionService;
+import in.scalive.votezy.util.CurrentUserUtil;
 import jakarta.validation.Valid;
 
 @RestController
@@ -18,9 +20,11 @@ import jakarta.validation.Valid;
 public class ElectionController {
 
     private final ElectionService electionService;
+    private final CurrentUserUtil currentUserUtil;
 
-    public ElectionController(ElectionService electionService) {
+    public ElectionController(ElectionService electionService, CurrentUserUtil currentUserUtil) {
         this.electionService = electionService;
+        this.currentUserUtil = currentUserUtil;
     }
 
     @GetMapping("/active")
@@ -35,9 +39,11 @@ public class ElectionController {
     @PostMapping("/add")
     public ResponseEntity<ApiResponse<ElectionResponseDTO>> createElection(
             @RequestBody @Valid ElectionRequestDTO request,
-            @RequestParam Long adminId) {
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
 
-        ElectionResponseDTO response = electionService.createElection(request, adminId);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        ElectionResponseDTO response = electionService.createElection(request, currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "Election created successfully", response));
@@ -47,9 +53,11 @@ public class ElectionController {
     public ResponseEntity<ApiResponse<ElectionResponseDTO>> updateElection(
             @PathVariable Long id,
             @RequestBody @Valid ElectionRequestDTO request,
-            @RequestParam Long adminId) {
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
 
-        ElectionResponseDTO response = electionService.updateElection(id, request, adminId);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        ElectionResponseDTO response = electionService.updateElection(id, request, currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Election updated successfully", response)
@@ -59,9 +67,11 @@ public class ElectionController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<ApiResponse<String>> deleteElection(
             @PathVariable Long id,
-            @RequestParam Long adminId) {
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
 
-        electionService.deleteElection(id, adminId);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        electionService.deleteElection(id, currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Election deleted successfully", "Election removed")

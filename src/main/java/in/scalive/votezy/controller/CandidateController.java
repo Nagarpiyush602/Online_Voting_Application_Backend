@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.*;
 import in.scalive.votezy.dto.ApiResponse;
 import in.scalive.votezy.dto.CandidateRequestDTO;
 import in.scalive.votezy.dto.CandidateResponseDTO;
+import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.service.CandidateService;
+import in.scalive.votezy.util.CurrentUserUtil;
 import jakarta.validation.Valid;
 
 @RestController
@@ -18,16 +20,21 @@ import jakarta.validation.Valid;
 public class CandidateController {
 
     private final CandidateService candidateService;
+    private final CurrentUserUtil currentUserUtil;
 
-    public CandidateController(CandidateService candidateService) {
+    public CandidateController(CandidateService candidateService, CurrentUserUtil currentUserUtil) {
         this.candidateService = candidateService;
+        this.currentUserUtil = currentUserUtil;
     }
 
     @PostMapping("/add")
     public ResponseEntity<ApiResponse<CandidateResponseDTO>> addCandidate(
-            @RequestBody @Valid CandidateRequestDTO request,@RequestParam Long adminId) {
+            @RequestBody @Valid CandidateRequestDTO request,
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
 
-        CandidateResponseDTO response = candidateService.addCandidate(request,adminId);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CandidateResponseDTO response = candidateService.addCandidate(request, currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "Candidate added successfully", response));
@@ -75,9 +82,11 @@ public class CandidateController {
     public ResponseEntity<ApiResponse<CandidateResponseDTO>> updateCandidate(
             @PathVariable Long id,
             @RequestBody @Valid CandidateRequestDTO request,
-            @RequestParam Long adminId) {
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
 
-        CandidateResponseDTO response = candidateService.updateCandidate(id, request,adminId);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CandidateResponseDTO response = candidateService.updateCandidate(id, request, currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Candidate updated successfully", response)
@@ -85,8 +94,13 @@ public class CandidateController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<ApiResponse<Object>> deleteCandidate(@PathVariable Long id,@RequestParam Long adminId) {
-        candidateService.deleteCandidate(id,adminId);
+    public ResponseEntity<ApiResponse<Object>> deleteCandidate(
+            @PathVariable Long id,
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
+
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        candidateService.deleteCandidate(id, currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Candidate with id: " + id + " deleted successfully", null)
