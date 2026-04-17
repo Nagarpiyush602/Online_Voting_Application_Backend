@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import in.scalive.votezy.dto.CurrentUserDTO;
+import in.scalive.votezy.dto.VoteCheckResponseDTO;
 import in.scalive.votezy.dto.VoteRequestDTO;
 import in.scalive.votezy.dto.VoteResponseDTO;
 import in.scalive.votezy.entity.Candidate;
@@ -87,18 +88,47 @@ public class VotingService {
         return convertToDTO(savedVote);
     }
 
-    public boolean hasVoted(Long voterId, Long electionId) {
-        Voter voter = voterRepository.findById(voterId)
-                .orElseThrow(() -> new ResourceNotFoundException("Voter not found"));
+    public VoteCheckResponseDTO checkVoteStatus(Long electionId, CurrentUserDTO currentUser) {
+        if (currentUser.getRole() != Role.VOTER) {
+            throw new UnauthorizedActionException("Only VOTER is allowed to check vote status");
+        }
+
+        Voter voter = voterRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Voter not found with id: " + currentUser.getUserId()));
+
+        if (voter.getRole() != Role.VOTER) {
+            throw new UnauthorizedActionException("Only voter are allowed to check vote status");
+        }
 
         Election election = electionRepository.findById(electionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found"));
 
-        return voteRepository.existsByVoterAndElection(voter, election);
+        boolean hasVoted = voteRepository.existsByVoterAndElection(voter, election);
+
+        return new VoteCheckResponseDTO(
+                voter.getId(),
+                election.getId(),
+                hasVoted
+        );
     }
 
-    public List<Vote> getAllVotes() {
-        return voteRepository.findAll();
+    public List<VoteResponseDTO> getAllVotes(CurrentUserDTO currentUser) {
+        if (currentUser.getRole() != Role.ADMIN) {
+            throw new UnauthorizedActionException("Only ADMIN is allowed to fetch all votes");
+        }
+
+        Voter admin = voterRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
+
+        if (admin.getRole() != Role.ADMIN) {
+            throw new UnauthorizedActionException("Only admin are allowed to fetch all votes");
+        }
+
+        List<Vote> votes = voteRepository.findAll();
+
+        return votes.stream()
+                .map(this::convertToDTO)
+                .toList();
     }
 
     private ElectionStatus calculateStatus(Election election) {
