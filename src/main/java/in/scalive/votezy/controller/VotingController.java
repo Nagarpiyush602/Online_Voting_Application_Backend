@@ -8,10 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import in.scalive.votezy.dto.ApiResponse;
+import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.dto.VoteRequestDTO;
 import in.scalive.votezy.dto.VoteResponseDTO;
 import in.scalive.votezy.entity.Vote;
 import in.scalive.votezy.service.VotingService;
+import in.scalive.votezy.util.CurrentUserUtil;
 import jakarta.validation.Valid;
 
 @RestController
@@ -20,14 +22,17 @@ import jakarta.validation.Valid;
 public class VotingController {
 
     private final VotingService votingService;
+    private final CurrentUserUtil currentUserUtil;
 
-    public VotingController(VotingService votingService) {
+    public VotingController(VotingService votingService,CurrentUserUtil currentUserUtil) {
         this.votingService = votingService;
+        this.currentUserUtil = currentUserUtil;
     }
 
     @PostMapping("/cast")
-    public ResponseEntity<ApiResponse<VoteResponseDTO>> castVote(@RequestBody @Valid VoteRequestDTO voteRequest) {
-        VoteResponseDTO voteResponse = votingService.castVote(voteRequest);
+    public ResponseEntity<ApiResponse<VoteResponseDTO>> castVote(@RequestBody @Valid VoteRequestDTO voteRequest,@RequestHeader("X-USER-ID")String userHeader,@RequestHeader("X-USER-ROLE")String roleHeader) {
+    	CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userHeader, roleHeader);
+        VoteResponseDTO voteResponse = votingService.castVote(voteRequest,currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "Vote cast successfully", voteResponse));

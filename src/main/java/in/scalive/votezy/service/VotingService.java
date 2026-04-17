@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.dto.VoteRequestDTO;
 import in.scalive.votezy.dto.VoteResponseDTO;
 import in.scalive.votezy.entity.Candidate;
@@ -39,9 +40,12 @@ public class VotingService {
         this.electionRepository = electionRepository;
     }
 
-    public VoteResponseDTO castVote(VoteRequestDTO request) {
-        Voter voter = voterRepository.findById(request.getVoterId())
-                .orElseThrow(() -> new ResourceNotFoundException("Voter not found with id: "+request.getVoterId()));
+    public VoteResponseDTO castVote(VoteRequestDTO request,CurrentUserDTO currentUser) {
+    	if(currentUser.getRole()!=Role.VOTER) {
+    		throw new UnauthorizedActionException("Only VOTER is allowed to cast vote");
+    	}
+        Voter voter = voterRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Voter not found with id: "+currentUser.getUserId()));
 
         if(voter.getRole()!=Role.VOTER) {
         	throw new UnauthorizedActionException("Only voter are allowed to cast vote");
