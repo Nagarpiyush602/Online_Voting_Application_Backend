@@ -39,8 +39,12 @@ public class ElectionResultController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ElectionResultResponseDTO>>> getAllResults() {
-        List<ElectionResultResponseDTO> response = electionResultService.getAllResults();
+    public ResponseEntity<ApiResponse<List<ElectionResultResponseDTO>>> getAllResults(
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
+
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        List<ElectionResultResponseDTO> response = electionResultService.getAllResults(currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "All election results fetched successfully", response)
@@ -49,9 +53,12 @@ public class ElectionResultController {
 
     @GetMapping("/{electionId}")
     public ResponseEntity<ApiResponse<ElectionResultResponseDTO>> getResultByElectionId(
-            @PathVariable Long electionId) {
+            @PathVariable Long electionId,
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
 
-        ElectionResultResponseDTO response = electionResultService.getResultByElectionId(electionId);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        ElectionResultResponseDTO response = electionResultService.getResultByElectionId(electionId, currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Election result fetched successfully", response)

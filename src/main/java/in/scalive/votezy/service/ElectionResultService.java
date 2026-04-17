@@ -15,7 +15,9 @@ import in.scalive.votezy.entity.ElectionStatus;
 import in.scalive.votezy.entity.ResultStatus;
 import in.scalive.votezy.entity.Role;
 import in.scalive.votezy.entity.Voter;
+import in.scalive.votezy.exception.InvalidRequestException;
 import in.scalive.votezy.exception.ResourceNotFoundException;
+import in.scalive.votezy.exception.UnauthorizedActionException;
 import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.CandidateRepository;
 import in.scalive.votezy.repository.ElectionRepository;
@@ -55,14 +57,15 @@ public class ElectionResultService {
         }
 
         if (electionResultRepository.existsByElection_Id(electionId)) {
-            ElectionResult existingResult = electionResultRepository.findByElection_Id(electionId).get();
+            ElectionResult existingResult = electionResultRepository.findByElection_Id(electionId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Result already exists but could not be fetched"));
             return convertToDTO(existingResult);
         }
 
         List<Candidate> candidates = candidateRepository.findByElectionId(electionId);
 
         if (candidates.isEmpty()) {
-            throw new IllegalStateException("No candidates found for this election");
+            throw new InvalidRequestException("No candidates found for this election");
         }
 
         long totalVotesCount = voteRepository.countByElection_Id(electionId);
@@ -112,7 +115,9 @@ public class ElectionResultService {
         return convertToDTO(savedResult);
     }
 
-    public List<ElectionResultResponseDTO> getAllResults() {
+    public List<ElectionResultResponseDTO> getAllResults(CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
+
         List<ElectionResult> results = electionResultRepository.findAll();
         List<ElectionResultResponseDTO> responseList = new ArrayList<>();
 
@@ -123,7 +128,9 @@ public class ElectionResultService {
         return responseList;
     }
 
-    public ElectionResultResponseDTO getResultByElectionId(Long electionId) {
+    public ElectionResultResponseDTO getResultByElectionId(Long electionId, CurrentUserDTO currentUser) {
+        validateResultViewer(currentUser);
+
         ElectionResult result = electionResultRepository.findByElection_Id(electionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Result not found for election id: " + electionId));
 
@@ -131,11 +138,28 @@ public class ElectionResultService {
     }
 
     private void validateAdmin(CurrentUserDTO currentUser) {
+        if (currentUser.getRole() != Role.ADMIN) {
+            throw new UnauthorizedActionException("Only ADMIN is allowed to perform this action");
+        }
+
         Voter voter = voterRepository.findById(currentUser.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
 
         if (voter.getRole() != Role.ADMIN) {
-            throw new VoteNotAllowedException("Only admin can perform this action");
+            throw new UnauthorizedActionException("Only admin can perform this action");
+        }
+    }
+
+    private void validateResultViewer(CurrentUserDTO currentUser) {
+        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.VOTER) {
+            throw new UnauthorizedActionException("Only ADMIN or VOTER is allowed to view election result");
+        }
+
+        Voter voter = voterRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
+
+        if (voter.getRole() != Role.ADMIN && voter.getRole() != Role.VOTER) {
+            throw new UnauthorizedActionException("Only ADMIN or VOTER is allowed to view election result");
         }
     }
 
