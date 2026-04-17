@@ -19,5 +19,5 @@ public class ElectionResponseDTO {
 	    
 	    private LocalDateTime endTime;
 	    
-	    private ElectionStatus status;
+	    private String status;
 }

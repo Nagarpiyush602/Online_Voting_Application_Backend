@@ -1,7 +1,5 @@
 package in.scalive.votezy.controller;
 
-import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,11 +26,16 @@ public class ElectionController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<ApiResponse<ElectionResponseDTO>> getActiveElection() {
-        ElectionResponseDTO response = electionService.getActiveElection();
-
+    public ResponseEntity<ApiResponse> getActiveElections() {
         return ResponseEntity.ok(
-                new ApiResponse<>(true, "Active election fetched successfully", response)
+                new ApiResponse(true, "Active elections fetched successfully", electionService.getActiveElections())
+        );
+    }
+
+    @GetMapping("/active/one")
+    public ResponseEntity<ApiResponse> getActiveElection() {
+        return ResponseEntity.ok(
+                new ApiResponse(true, "Active election fetched successfully", electionService.getActiveElection())
         );
     }
 
@@ -74,25 +77,34 @@ public class ElectionController {
         electionService.deleteElection(id, currentUser);
 
         return ResponseEntity.ok(
-                new ApiResponse<>(true, "Election deleted successfully", "Election removed")
+                new ApiResponse<>(true, "Election deleted successfully", "Election removed successfully")
         );
     }
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<List<ElectionResponseDTO>>> getAllElections() {
-        List<ElectionResponseDTO> elections = electionService.getAllElections();
+    @GetMapping("/admin/all")
+    public ResponseEntity<ApiResponse> getAllElections(
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
+
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
 
         return ResponseEntity.ok(
-                new ApiResponse<>(true, "All elections fetched successfully", elections)
+                new ApiResponse(true, "All elections fetched successfully",
+                        electionService.getAllElections(currentUser))
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ElectionResponseDTO>> getElectionById(@PathVariable Long id) {
-        ElectionResponseDTO election = electionService.getElectionById(id);
+    public ResponseEntity<ApiResponse> getElectionById(
+            @PathVariable Long id,
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
+
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
 
         return ResponseEntity.ok(
-                new ApiResponse<>(true, "Election fetched successfully", election)
+                new ApiResponse(true, "Election fetched successfully",
+                        electionService.getElectionById(id, currentUser))
         );
     }
 }

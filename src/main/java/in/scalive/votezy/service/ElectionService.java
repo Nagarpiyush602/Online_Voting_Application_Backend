@@ -14,7 +14,8 @@ import in.scalive.votezy.entity.ElectionStatus;
 import in.scalive.votezy.entity.Role;
 import in.scalive.votezy.entity.Voter;
 import in.scalive.votezy.exception.ResourceNotFoundException;
-import in.scalive.votezy.exception.UnauthorizedActionException;
+import in.scalive.votezy.exception.InvalidRequestException;
+import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.ElectionRepository;
 import in.scalive.votezy.repository.VoterRepository;
 
@@ -32,13 +33,12 @@ public class ElectionService {
     public ElectionResponseDTO createElection(ElectionRequestDTO request, CurrentUserDTO currentUser) {
         validateAdmin(currentUser);
 
+        validateElectionTimes(request);
+
         Election election = new Election();
-        election.setName(request.getName());
+        election.setName(request.getName().trim());
         election.setStartTime(request.getStartTime());
         election.setEndTime(request.getEndTime());
-
-        validateElectionDates(election);
-        election.setStatus(calculateStatus(election));
 
         Election savedElection = electionRepository.save(election);
         return convertToDTO(savedElection);
@@ -47,17 +47,16 @@ public class ElectionService {
     public ElectionResponseDTO updateElection(Long id, ElectionRequestDTO request, CurrentUserDTO currentUser) {
         validateAdmin(currentUser);
 
-        Election existingElection = electionRepository.findById(id)
+        validateElectionTimes(request);
+
+        Election election = electionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
 
-        existingElection.setName(request.getName());
-        existingElection.setStartTime(request.getStartTime());
-        existingElection.setEndTime(request.getEndTime());
+        election.setName(request.getName().trim());
+        election.setStartTime(request.getStartTime());
+        election.setEndTime(request.getEndTime());
 
-        validateElectionDates(existingElection);
-        existingElection.setStatus(calculateStatus(existingElection));
-
-        Election updatedElection = electionRepository.save(existingElection);
+        Election updatedElection = electionRepository.save(election);
         return convertToDTO(updatedElection);
     }
 
@@ -70,47 +69,56 @@ public class ElectionService {
         electionRepository.delete(election);
     }
 
-    public List<ElectionResponseDTO> getAllElections() {
-        List<Election> elections = electionRepository.findAll();
+    public List<ElectionResponseDTO> getAllElections(CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
 
-        return elections.stream()
+        return electionRepository.findAll()
+                .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    public ElectionResponseDTO getElectionById(Long id) {
+    public ElectionResponseDTO getElectionById(Long id, CurrentUserDTO currentUser) {
         Election election = electionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
+
+        Voter voter = voterRepository.findById(currentUser.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
+
+        if (voter.getRole() == Role.ADMIN) {
+            return convertToDTO(election);
+        }
+
+        if (getElectionStatus(election) == ElectionStatus.UPCOMING) {
+            throw new InvalidRequestException("This election is not visible yet");
+        }
 
         return convertToDTO(election);
     }
 
+    public List<ElectionResponseDTO> getActiveElections() {
+        return electionRepository.findAll()
+                .stream()
+                .filter(election -> getElectionStatus(election) == ElectionStatus.ACTIVE)
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
     public ElectionResponseDTO getActiveElection() {
-        List<Election> activeElections = electionRepository.findByStatus(ElectionStatus.ACTIVE);
+        List<Election> activeElections = electionRepository.findAll()
+                .stream()
+                .filter(election -> getElectionStatus(election) == ElectionStatus.ACTIVE)
+                .collect(Collectors.toList());
 
         if (activeElections.isEmpty()) {
             throw new ResourceNotFoundException("No active election found");
         }
 
         if (activeElections.size() > 1) {
-            throw new RuntimeException("Multiple active elections found");
+            throw new InvalidRequestException("Multiple active elections found");
         }
 
         return convertToDTO(activeElections.get(0));
-    }
-
-    private ElectionStatus calculateStatus(Election election) {
-        LocalDateTime now = LocalDateTime.now();
-
-        if (now.isBefore(election.getStartTime())) {
-            return ElectionStatus.UPCOMING;
-        }
-
-        if (now.isAfter(election.getEndTime())) {
-            return ElectionStatus.COMPLETED;
-        }
-
-        return ElectionStatus.ACTIVE;
     }
 
     private void validateAdmin(CurrentUserDTO currentUser) {
@@ -118,35 +126,39 @@ public class ElectionService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
 
         if (voter.getRole() != Role.ADMIN) {
-            throw new UnauthorizedActionException("Only ADMIN can perform this action");
+            throw new VoteNotAllowedException("Only admin can perform this action");
         }
     }
 
-    private void validateElectionDates(Election election) {
-        if (election.getName() == null || election.getName().trim().isEmpty()) {
-            throw new IllegalArgumentException("Election name is required");
+    private void validateElectionTimes(ElectionRequestDTO request) {
+        if (request.getStartTime() == null || request.getEndTime() == null) {
+            throw new InvalidRequestException("Start time and end time are required");
         }
 
-        if (election.getStartTime() == null) {
-            throw new IllegalArgumentException("Start time is required");
+        if (!request.getEndTime().isAfter(request.getStartTime())) {
+            throw new InvalidRequestException("End time must be after start time");
         }
+    }
 
-        if (election.getEndTime() == null) {
-            throw new IllegalArgumentException("End time is required");
-        }
+    private ElectionStatus getElectionStatus(Election election) {
+        LocalDateTime now = LocalDateTime.now();
 
-        if (!election.getEndTime().isAfter(election.getStartTime())) {
-            throw new IllegalArgumentException("End time must be after start time");
+        if (now.isBefore(election.getStartTime())) {
+            return ElectionStatus.UPCOMING;
+        } else if (now.isAfter(election.getEndTime())) {
+            return ElectionStatus.COMPLETED;
+        } else {
+            return ElectionStatus.ACTIVE;
         }
     }
 
     private ElectionResponseDTO convertToDTO(Election election) {
-        return new ElectionResponseDTO(
-                election.getId(),
-                election.getName(),
-                election.getStartTime(),
-                election.getEndTime(),
-                calculateStatus(election)
-        );
+        ElectionResponseDTO response = new ElectionResponseDTO();
+        response.setId(election.getId());
+        response.setName(election.getName());
+        response.setStartTime(election.getStartTime());
+        response.setEndTime(election.getEndTime());
+        response.setStatus(getElectionStatus(election).name());
+        return response;
     }
 }
