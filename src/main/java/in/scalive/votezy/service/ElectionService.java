@@ -13,8 +13,8 @@ import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.ElectionStatus;
 import in.scalive.votezy.entity.Role;
 import in.scalive.votezy.entity.Voter;
-import in.scalive.votezy.exception.ResourceNotFoundException;
 import in.scalive.votezy.exception.InvalidRequestException;
+import in.scalive.votezy.exception.ResourceNotFoundException;
 import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.ElectionRepository;
 import in.scalive.votezy.repository.VoterRepository;
@@ -32,8 +32,8 @@ public class ElectionService {
 
     public ElectionResponseDTO createElection(ElectionRequestDTO request, CurrentUserDTO currentUser) {
         validateAdmin(currentUser);
-
         validateElectionTimes(request);
+        validateDuplicateElectionName(request.getName());
 
         Election election = new Election();
         election.setName(request.getName().trim());
@@ -46,11 +46,12 @@ public class ElectionService {
 
     public ElectionResponseDTO updateElection(Long id, ElectionRequestDTO request, CurrentUserDTO currentUser) {
         validateAdmin(currentUser);
-
         validateElectionTimes(request);
 
         Election election = electionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
+
+        validateDuplicateElectionNameForUpdate(request.getName(), election.getId());
 
         election.setName(request.getName().trim());
         election.setStartTime(request.getStartTime());
@@ -138,6 +139,22 @@ public class ElectionService {
         if (!request.getEndTime().isAfter(request.getStartTime())) {
             throw new InvalidRequestException("End time must be after start time");
         }
+    }
+
+    private void validateDuplicateElectionName(String name) {
+        electionRepository.findByName(name.trim())
+                .ifPresent(e -> {
+                    throw new InvalidRequestException("Election with this name already exists");
+                });
+    }
+
+    private void validateDuplicateElectionNameForUpdate(String name, Long electionId) {
+        electionRepository.findByName(name.trim())
+                .ifPresent(existingElection -> {
+                    if (!existingElection.getId().equals(electionId)) {
+                        throw new InvalidRequestException("Election with this name already exists");
+                    }
+                });
     }
 
     private ElectionStatus getElectionStatus(Election election) {
