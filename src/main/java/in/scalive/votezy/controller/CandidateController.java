@@ -41,8 +41,13 @@ public class CandidateController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<CandidateResponseDTO>> getCandidateById(@PathVariable Long id) {
-        CandidateResponseDTO response = candidateService.getCandidateById(id);
+    public ResponseEntity<ApiResponse<CandidateResponseDTO>> getCandidateById(
+            @PathVariable Long id,
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
+
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CandidateResponseDTO response = candidateService.getCandidateById(id, currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Candidate fetched successfully", response)
@@ -50,8 +55,12 @@ public class CandidateController {
     }
 
     @GetMapping("/active-election")
-    public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getCandidatesForActiveElection() {
-        List<CandidateResponseDTO> response = candidateService.getCandidatesForActiveElection();
+    public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getCandidatesForActiveElection(
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
+
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        List<CandidateResponseDTO> response = candidateService.getCandidatesForActiveElection(currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Active election candidates fetched successfully", response)
@@ -59,8 +68,12 @@ public class CandidateController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getAllCandidates() {
-        List<CandidateResponseDTO> response = candidateService.getAllCandidates();
+    public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getAllCandidates(
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
+
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        List<CandidateResponseDTO> response = candidateService.getAllCandidates(currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "All candidates fetched successfully", response)
@@ -69,9 +82,12 @@ public class CandidateController {
 
     @GetMapping("/election/{electionId}")
     public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getCandidatesByElectionId(
-            @PathVariable Long electionId) {
+            @PathVariable Long electionId,
+            @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-USER-ROLE") String roleHeader) {
 
-        List<CandidateResponseDTO> response = candidateService.getCandidatesByElectionId(electionId);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        List<CandidateResponseDTO> response = candidateService.getCandidatesByElectionId(electionId, currentUser);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(true, "Candidates fetched successfully for election", response)

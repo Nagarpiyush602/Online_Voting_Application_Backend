@@ -12,12 +12,10 @@ import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.Role;
-import in.scalive.votezy.entity.Voter;
 import in.scalive.votezy.exception.ResourceNotFoundException;
 import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.CandidateRepository;
 import in.scalive.votezy.repository.ElectionRepository;
-import in.scalive.votezy.repository.VoterRepository;
 
 @Service
 public class CandidateService {
@@ -25,14 +23,13 @@ public class CandidateService {
     private final CandidateRepository candidateRepository;
     private final ElectionRepository electionRepository;
     private final ElectionService electionService;
-    private final VoterRepository voterRepository;
 
-    public CandidateService(CandidateRepository candidateRepository, VoterRepository voterRepository,
-                            ElectionRepository electionRepository, ElectionService electionService) {
+    public CandidateService(CandidateRepository candidateRepository,
+                            ElectionRepository electionRepository,
+                            ElectionService electionService) {
         this.candidateRepository = candidateRepository;
         this.electionRepository = electionRepository;
         this.electionService = electionService;
-        this.voterRepository = voterRepository;
     }
 
     public CandidateResponseDTO addCandidate(CandidateRequestDTO request, CurrentUserDTO currentUser) {
@@ -45,7 +42,7 @@ public class CandidateService {
         String normalizedParty = request.getParty().trim();
 
         if (candidateRepository.existsByPartyIgnoreCaseAndElection(normalizedParty, election)) {
-            throw new VoteNotAllowedException("Party '" + normalizedParty + "' alredy has a candidate in this election");
+            throw new VoteNotAllowedException("Party '" + normalizedParty + "' already has a candidate in this election");
         }
 
         Candidate candidate = new Candidate();
@@ -58,28 +55,39 @@ public class CandidateService {
         return convertToDTO(savedCandidate);
     }
 
-    public List<CandidateResponseDTO> getAllCandidates() {
+    public List<CandidateResponseDTO> getAllCandidates(CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
+
         return candidateRepository.findAll()
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    public CandidateResponseDTO getCandidateById(Long id) {
+    public CandidateResponseDTO getCandidateById(Long id, CurrentUserDTO currentUser) {
+        validateAdmin(currentUser);
+
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with id: " + id));
 
         return convertToDTO(candidate);
     }
 
-    public List<CandidateResponseDTO> getCandidatesByElectionId(Long electionId) {
+    public List<CandidateResponseDTO> getCandidatesByElectionId(Long electionId, CurrentUserDTO currentUser) {
+        validateAdminOrVoter(currentUser);
+
+        electionRepository.findById(electionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + electionId));
+
         return candidateRepository.findByElectionId(electionId)
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<CandidateResponseDTO> getCandidatesForActiveElection() {
+    public List<CandidateResponseDTO> getCandidatesForActiveElection(CurrentUserDTO currentUser) {
+        validateAdminOrVoter(currentUser);
+
         ElectionResponseDTO activeElection = electionService.getActiveElection();
 
         List<Candidate> candidates = candidateRepository.findByElectionId(activeElection.getId());
@@ -123,11 +131,18 @@ public class CandidateService {
     }
 
     private void validateAdmin(CurrentUserDTO currentUser) {
-        Voter voter = voterRepository.findById(currentUser.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
+        if (currentUser == null || currentUser.getRole() == null || currentUser.getRole() != Role.ADMIN) {
+            throw new VoteNotAllowedException("Only admin can access this");
+        }
+    }
 
-        if (voter.getRole() != Role.ADMIN) {
-            throw new VoteNotAllowedException("Only admin can perform this action");
+    private void validateAdminOrVoter(CurrentUserDTO currentUser) {
+        if (currentUser == null || currentUser.getRole() == null) {
+            throw new VoteNotAllowedException("User not authenticated");
+        }
+
+        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.VOTER) {
+            throw new VoteNotAllowedException("Only admin or voter can access this");
         }
     }
 
