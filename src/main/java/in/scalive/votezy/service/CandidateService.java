@@ -13,6 +13,7 @@ import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Election;
 import in.scalive.votezy.entity.Role;
 import in.scalive.votezy.exception.ResourceNotFoundException;
+import in.scalive.votezy.exception.UnauthorizedActionException;
 import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.CandidateRepository;
 import in.scalive.votezy.repository.ElectionRepository;
@@ -33,25 +34,22 @@ public class CandidateService {
     }
 
     public CandidateResponseDTO addCandidate(CandidateRequestDTO request, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+
+        if (currentUser.getRole() != Role.ADMIN) {
+            throw new UnauthorizedActionException("Only ADMIN can add candidate");
+        }
 
         Election election = electionRepository.findById(request.getElectionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + request.getElectionId()));
 
-        String normalizedName = request.getName().trim();
-        String normalizedParty = request.getParty().trim();
-
-        if (candidateRepository.existsByPartyIgnoreCaseAndElection(normalizedParty, election)) {
-            throw new VoteNotAllowedException("Party '" + normalizedParty + "' already has a candidate in this election");
-        }
-
         Candidate candidate = new Candidate();
-        candidate.setName(normalizedName);
-        candidate.setParty(normalizedParty);
+        candidate.setName(request.getName());
+        candidate.setParty(request.getParty());
         candidate.setVoteCount(0);
-        candidate.setElection(election);
+        candidate.setElection(election); // 🔥 request wala election use hoga
 
         Candidate savedCandidate = candidateRepository.save(candidate);
+
         return convertToDTO(savedCandidate);
     }
 

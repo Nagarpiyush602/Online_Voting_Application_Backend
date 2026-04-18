@@ -41,44 +41,35 @@ public class VotingService {
         this.electionRepository = electionRepository;
     }
 
-    public VoteResponseDTO castVote(VoteRequestDTO request,CurrentUserDTO currentUser) {
-    	if(currentUser.getRole()!=Role.VOTER) {
-    		throw new UnauthorizedActionException("Only VOTER is allowed to cast vote");
-    	}
+    public VoteResponseDTO castVote(VoteRequestDTO request, CurrentUserDTO currentUser) {
+        if (currentUser.getRole() != Role.VOTER) {
+            throw new UnauthorizedActionException("Only VOTER is allowed to cast vote");
+        }
+
         Voter voter = voterRepository.findById(currentUser.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Voter not found with id: "+currentUser.getUserId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Voter not found with id: " + currentUser.getUserId()));
 
-        if(voter.getRole()!=Role.VOTER) {
-        	throw new UnauthorizedActionException("Only voter are allowed to cast vote");
+        if (voter.getRole() != Role.VOTER) {
+            throw new UnauthorizedActionException("Only voter are allowed to cast vote");
         }
+
+        Election activeElection = getSingleActiveElection();
+
         Candidate candidate = candidateRepository.findById(request.getCandidateId())
-                .orElseThrow(() -> new ResourceNotFoundException("Candidate not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with id: " + request.getCandidateId()));
 
-        Election election = electionRepository.findById(request.getElectionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Election not found"));
-
-        if (calculateStatus(election) != ElectionStatus.ACTIVE) {
-            throw new InvalidRequestException("Vote is allowed only when election is ACTIVE");
+        if (candidate.getElection() == null || !candidate.getElection().getId().equals(activeElection.getId())) {
+            throw new InvalidRequestException("Candidate does not belong to the active election");
         }
 
-        LocalDateTime now = LocalDateTime.now();
-
-        if (now.isBefore(election.getStartTime()) || now.isAfter(election.getEndTime())) {
-            throw new InvalidRequestException("Voting is allowed only during election time");
-        }
-
-        if (candidate.getElection()==null || !candidate.getElection().getId().equals(election.getId())) {
-            throw new InvalidRequestException("Candidate does not belong to this election");
-        }
-
-        if (voteRepository.existsByVoterAndElection(voter, election)) {
-            throw new InvalidRequestException("Voter has already voted in this election");
+        if (voteRepository.existsByVoterAndElection(voter, activeElection)) {
+            throw new InvalidRequestException("Voter has already voted in the active election");
         }
 
         Vote vote = new Vote();
         vote.setVoter(voter);
         vote.setCandidate(candidate);
-        vote.setElection(election);
+        vote.setElection(activeElection);
 
         Vote savedVote = voteRepository.save(vote);
 
@@ -88,7 +79,7 @@ public class VotingService {
         return convertToDTO(savedVote);
     }
 
-    public VoteCheckResponseDTO checkVoteStatus(Long electionId, CurrentUserDTO currentUser) {
+    public VoteCheckResponseDTO checkVoteStatus(CurrentUserDTO currentUser) {
         if (currentUser.getRole() != Role.VOTER) {
             throw new UnauthorizedActionException("Only VOTER is allowed to check vote status");
         }
@@ -100,14 +91,13 @@ public class VotingService {
             throw new UnauthorizedActionException("Only voter are allowed to check vote status");
         }
 
-        Election election = electionRepository.findById(electionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Election not found"));
+        Election activeElection = getSingleActiveElection();
 
-        boolean hasVoted = voteRepository.existsByVoterAndElection(voter, election);
+        boolean hasVoted = voteRepository.existsByVoterAndElection(voter, activeElection);
 
         return new VoteCheckResponseDTO(
                 voter.getId(),
-                election.getId(),
+                activeElection.getId(),
                 hasVoted
         );
     }
@@ -129,6 +119,23 @@ public class VotingService {
         return votes.stream()
                 .map(this::convertToDTO)
                 .toList();
+    }
+
+    private Election getSingleActiveElection() {
+        List<Election> activeElections = electionRepository.findAll()
+                .stream()
+                .filter(election -> calculateStatus(election) == ElectionStatus.ACTIVE)
+                .toList();
+
+        if (activeElections.isEmpty()) {
+            throw new ResourceNotFoundException("No active election found");
+        }
+
+        if (activeElections.size() > 1) {
+            throw new InvalidRequestException("Multiple active elections found");
+        }
+
+        return activeElections.get(0);
     }
 
     private ElectionStatus calculateStatus(Election election) {
