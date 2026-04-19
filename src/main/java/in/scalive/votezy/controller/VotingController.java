@@ -13,6 +13,7 @@ import in.scalive.votezy.dto.VoteRequestDTO;
 import in.scalive.votezy.dto.VoteResponseDTO;
 import in.scalive.votezy.service.VotingService;
 import in.scalive.votezy.util.CurrentUserUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -31,10 +32,9 @@ public class VotingController {
     @PostMapping("/cast")
     public ResponseEntity<ApiResponse<VoteResponseDTO>> castVote(
             @RequestBody @Valid VoteRequestDTO voteRequest,
-            @RequestHeader("X-USER-ID") String userHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+            HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         VoteResponseDTO voteResponse = votingService.castVote(voteRequest, currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -43,10 +43,9 @@ public class VotingController {
 
     @GetMapping("/check")
     public ResponseEntity<ApiResponse<VoteCheckResponseDTO>> checkVoteStatus(
-            @RequestHeader("X-USER-ID") String userHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+    		HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         VoteCheckResponseDTO response = votingService.checkVoteStatus(currentUser);
 
         return ResponseEntity.ok(
@@ -56,10 +55,9 @@ public class VotingController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<VoteResponseDTO>>> getAllVotes(
-            @RequestHeader("X-USER-ID") String userHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+    		HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         List<VoteResponseDTO> response = votingService.getAllVotes(currentUser);
 
         return ResponseEntity.ok(

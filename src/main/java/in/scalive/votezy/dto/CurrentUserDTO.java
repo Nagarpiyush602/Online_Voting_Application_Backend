@@ -12,4 +12,6 @@ public class CurrentUserDTO {
 
 	private Long userId;
 	private Role role;
+	private String fireBaseUid;
+	private String email;
 }

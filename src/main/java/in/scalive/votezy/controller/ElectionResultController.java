@@ -10,6 +10,7 @@ import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.dto.ElectionResultResponseDTO;
 import in.scalive.votezy.service.ElectionResultService;
 import in.scalive.votezy.util.CurrentUserUtil;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/election-results")
@@ -27,10 +28,9 @@ public class ElectionResultController {
     @PostMapping("/declare/{electionId}")
     public ResponseEntity<ApiResponse<ElectionResultResponseDTO>> declareResult(
             @PathVariable Long electionId,
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+            HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         ElectionResultResponseDTO response = electionResultService.declareElectionResult(electionId, currentUser);
 
         return ResponseEntity.ok(
@@ -40,10 +40,9 @@ public class ElectionResultController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ElectionResultResponseDTO>>> getAllResults(
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+    		HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         List<ElectionResultResponseDTO> response = electionResultService.getAllResults(currentUser);
 
         return ResponseEntity.ok(
@@ -54,10 +53,9 @@ public class ElectionResultController {
     @GetMapping("/{electionId}")
     public ResponseEntity<ApiResponse<ElectionResultResponseDTO>> getResultByElectionId(
             @PathVariable Long electionId,
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+            HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         ElectionResultResponseDTO response = electionResultService.getResultByElectionId(electionId, currentUser);
 
         return ResponseEntity.ok(

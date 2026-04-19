@@ -12,6 +12,7 @@ import in.scalive.votezy.dto.CandidateResponseDTO;
 import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.service.CandidateService;
 import in.scalive.votezy.util.CurrentUserUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
@@ -30,10 +31,9 @@ public class CandidateController {
     @PostMapping("/add")
     public ResponseEntity<ApiResponse<CandidateResponseDTO>> addCandidate(
             @RequestBody @Valid CandidateRequestDTO request,
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+            HttpServletRequest servletRequest) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(servletRequest);
         CandidateResponseDTO response = candidateService.addCandidate(request, currentUser);
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -43,10 +43,9 @@ public class CandidateController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CandidateResponseDTO>> getCandidateById(
             @PathVariable Long id,
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+            HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         CandidateResponseDTO response = candidateService.getCandidateById(id, currentUser);
 
         return ResponseEntity.ok(
@@ -56,10 +55,9 @@ public class CandidateController {
 
     @GetMapping("/active-election")
     public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getCandidatesForActiveElection(
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+    		HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         List<CandidateResponseDTO> response = candidateService.getCandidatesForActiveElection(currentUser);
 
         return ResponseEntity.ok(
@@ -69,10 +67,10 @@ public class CandidateController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getAllCandidates(
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+    		HttpServletRequest request
+            ) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         List<CandidateResponseDTO> response = candidateService.getAllCandidates(currentUser);
 
         return ResponseEntity.ok(
@@ -83,10 +81,9 @@ public class CandidateController {
     @GetMapping("/election/{electionId}")
     public ResponseEntity<ApiResponse<List<CandidateResponseDTO>>> getCandidatesByElectionId(
             @PathVariable Long electionId,
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+            HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         List<CandidateResponseDTO> response = candidateService.getCandidatesByElectionId(electionId, currentUser);
 
         return ResponseEntity.ok(
@@ -98,10 +95,9 @@ public class CandidateController {
     public ResponseEntity<ApiResponse<CandidateResponseDTO>> updateCandidate(
             @PathVariable Long id,
             @RequestBody @Valid CandidateRequestDTO request,
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+            HttpServletRequest servletRequest) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(servletRequest);
         CandidateResponseDTO response = candidateService.updateCandidate(id, request, currentUser);
 
         return ResponseEntity.ok(
@@ -112,10 +108,9 @@ public class CandidateController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<ApiResponse<Object>> deleteCandidate(
             @PathVariable Long id,
-            @RequestHeader("X-USER-ID") String userIdHeader,
-            @RequestHeader("X-USER-ROLE") String roleHeader) {
+            HttpServletRequest request) {
 
-        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(userIdHeader, roleHeader);
+        CurrentUserDTO currentUser = currentUserUtil.getCurrentUser(request);
         candidateService.deleteCandidate(id, currentUser);
 
         return ResponseEntity.ok(
