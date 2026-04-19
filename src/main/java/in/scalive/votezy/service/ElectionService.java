@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import in.scalive.votezy.dto.CurrentUserDTO;
 import in.scalive.votezy.dto.ElectionRequestDTO;
@@ -15,23 +16,23 @@ import in.scalive.votezy.entity.Role;
 import in.scalive.votezy.entity.Voter;
 import in.scalive.votezy.exception.InvalidRequestException;
 import in.scalive.votezy.exception.ResourceNotFoundException;
-import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.ElectionRepository;
-import in.scalive.votezy.repository.VoterRepository;
 
 @Service
 public class ElectionService {
 
     private final ElectionRepository electionRepository;
-    private final VoterRepository voterRepository;
+    private final AuthorizationService authorizationService;
 
-    public ElectionService(ElectionRepository electionRepository, VoterRepository voterRepository) {
+    public ElectionService(ElectionRepository electionRepository,
+                           AuthorizationService authorizationService) {
         this.electionRepository = electionRepository;
-        this.voterRepository = voterRepository;
+        this.authorizationService = authorizationService;
     }
 
+    @Transactional
     public ElectionResponseDTO createElection(ElectionRequestDTO request, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
         validateElectionTimes(request);
         validateDuplicateElectionName(request.getName());
 
@@ -39,39 +40,41 @@ public class ElectionService {
         election.setName(request.getName().trim());
         election.setStartTime(request.getStartTime());
         election.setEndTime(request.getEndTime());
+        election.setStatus(calculateElectionStatus(election));
 
         Election savedElection = electionRepository.save(election);
         return convertToDTO(savedElection);
     }
 
+    @Transactional
     public ElectionResponseDTO updateElection(Long id, ElectionRequestDTO request, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
         validateElectionTimes(request);
 
-        Election election = electionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
-
+        Election election = getElectionEntityById(id);
         validateDuplicateElectionNameForUpdate(request.getName(), election.getId());
 
         election.setName(request.getName().trim());
         election.setStartTime(request.getStartTime());
         election.setEndTime(request.getEndTime());
+        election.setStatus(calculateElectionStatus(election));
 
         Election updatedElection = electionRepository.save(election);
         return convertToDTO(updatedElection);
     }
 
+    @Transactional
     public void deleteElection(Long id, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
 
-        Election election = electionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
-
+        Election election = getElectionEntityById(id);
         electionRepository.delete(election);
     }
 
+    @Transactional
     public List<ElectionResponseDTO> getAllElections(CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
+        syncAllElectionStatuses();
 
         return electionRepository.findAll()
                 .stream()
@@ -79,36 +82,56 @@ public class ElectionService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public ElectionResponseDTO getElectionById(Long id, CurrentUserDTO currentUser) {
-        Election election = electionRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
+        Election election = getElectionEntityById(id);
 
-        Voter voter = voterRepository.findById(currentUser.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
+        Voter user = authorizationService.getCurrentUserEntity(currentUser);
 
-        if (voter.getRole() == Role.ADMIN) {
+        if (user.getRole() == Role.ADMIN) {
             return convertToDTO(election);
         }
 
-        if (getElectionStatus(election) == ElectionStatus.UPCOMING) {
+        if (election.getStatus() == ElectionStatus.UPCOMING) {
             throw new InvalidRequestException("This election is not visible yet");
         }
 
         return convertToDTO(election);
     }
 
+    @Transactional
     public List<ElectionResponseDTO> getActiveElections() {
+        syncAllElectionStatuses();
+
         return electionRepository.findAll()
                 .stream()
-                .filter(election -> getElectionStatus(election) == ElectionStatus.ACTIVE)
+                .filter(election -> election.getStatus() == ElectionStatus.ACTIVE)
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public ElectionResponseDTO getActiveElection() {
+        Election activeElection = getSingleActiveElectionEntity();
+        return convertToDTO(activeElection);
+    }
+
+    @Transactional
+    public Election getElectionEntityById(Long id) {
+        Election election = electionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + id));
+
+        syncElectionStatus(election);
+        return election;
+    }
+
+    @Transactional
+    public Election getSingleActiveElectionEntity() {
+        syncAllElectionStatuses();
+
         List<Election> activeElections = electionRepository.findAll()
                 .stream()
-                .filter(election -> getElectionStatus(election) == ElectionStatus.ACTIVE)
+                .filter(election -> election.getStatus() == ElectionStatus.ACTIVE)
                 .collect(Collectors.toList());
 
         if (activeElections.isEmpty()) {
@@ -116,18 +139,43 @@ public class ElectionService {
         }
 
         if (activeElections.size() > 1) {
-            throw new InvalidRequestException("Multiple active elections found");
+            throw new InvalidRequestException("Multiple active elections found. Please keep only one active election at a time");
         }
 
-        return convertToDTO(activeElections.get(0));
+        return activeElections.get(0);
     }
 
-    private void validateAdmin(CurrentUserDTO currentUser) {
-        Voter voter = voterRepository.findById(currentUser.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
+    public ElectionStatus calculateElectionStatus(Election election) {
+        LocalDateTime now = LocalDateTime.now();
 
-        if (voter.getRole() != Role.ADMIN) {
-            throw new VoteNotAllowedException("Only admin can perform this action");
+        if (now.isBefore(election.getStartTime())) {
+            return ElectionStatus.UPCOMING;
+        } else if (now.isAfter(election.getEndTime())) {
+            return ElectionStatus.COMPLETED;
+        } else {
+            return ElectionStatus.ACTIVE;
+        }
+    }
+
+    private void syncElectionStatus(Election election) {
+        ElectionStatus calculatedStatus = calculateElectionStatus(election);
+
+        if (election.getStatus() == null || election.getStatus() != calculatedStatus) {
+            election.setStatus(calculatedStatus);
+            electionRepository.save(election);
+        }
+    }
+
+    private void syncAllElectionStatuses() {
+        List<Election> elections = electionRepository.findAll();
+
+        for (Election election : elections) {
+            ElectionStatus calculatedStatus = calculateElectionStatus(election);
+
+            if (election.getStatus() == null || election.getStatus() != calculatedStatus) {
+                election.setStatus(calculatedStatus);
+                electionRepository.save(election);
+            }
         }
     }
 
@@ -157,25 +205,15 @@ public class ElectionService {
                 });
     }
 
-    private ElectionStatus getElectionStatus(Election election) {
-        LocalDateTime now = LocalDateTime.now();
-
-        if (now.isBefore(election.getStartTime())) {
-            return ElectionStatus.UPCOMING;
-        } else if (now.isAfter(election.getEndTime())) {
-            return ElectionStatus.COMPLETED;
-        } else {
-            return ElectionStatus.ACTIVE;
-        }
-    }
-
     private ElectionResponseDTO convertToDTO(Election election) {
         ElectionResponseDTO response = new ElectionResponseDTO();
         response.setId(election.getId());
         response.setName(election.getName());
         response.setStartTime(election.getStartTime());
         response.setEndTime(election.getEndTime());
-        response.setStatus(getElectionStatus(election).name());
+        response.setStatus(election.getStatus() != null
+                ? election.getStatus().name()
+                : calculateElectionStatus(election).name());
         return response;
     }
 }

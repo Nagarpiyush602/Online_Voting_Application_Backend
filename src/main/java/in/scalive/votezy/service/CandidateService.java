@@ -8,53 +8,48 @@ import org.springframework.stereotype.Service;
 import in.scalive.votezy.dto.CandidateRequestDTO;
 import in.scalive.votezy.dto.CandidateResponseDTO;
 import in.scalive.votezy.dto.CurrentUserDTO;
-import in.scalive.votezy.dto.ElectionResponseDTO;
 import in.scalive.votezy.entity.Candidate;
 import in.scalive.votezy.entity.Election;
-import in.scalive.votezy.entity.Role;
+import in.scalive.votezy.exception.InvalidRequestException;
 import in.scalive.votezy.exception.ResourceNotFoundException;
-import in.scalive.votezy.exception.UnauthorizedActionException;
-import in.scalive.votezy.exception.VoteNotAllowedException;
 import in.scalive.votezy.repository.CandidateRepository;
-import in.scalive.votezy.repository.ElectionRepository;
 
 @Service
 public class CandidateService {
 
     private final CandidateRepository candidateRepository;
-    private final ElectionRepository electionRepository;
     private final ElectionService electionService;
+    private final AuthorizationService authorizationService;
 
     public CandidateService(CandidateRepository candidateRepository,
-                            ElectionRepository electionRepository,
-                            ElectionService electionService) {
+                            ElectionService electionService,
+                            AuthorizationService authorizationService) {
         this.candidateRepository = candidateRepository;
-        this.electionRepository = electionRepository;
         this.electionService = electionService;
+        this.authorizationService = authorizationService;
     }
 
     public CandidateResponseDTO addCandidate(CandidateRequestDTO request, CurrentUserDTO currentUser) {
+        authorizationService.requireAdmin(currentUser);
 
-        if (currentUser.getRole() != Role.ADMIN) {
-            throw new UnauthorizedActionException("Only ADMIN can add candidate");
-        }
+        Election election = electionService.getElectionEntityById(request.getElectionId());
+        String normalizedName = request.getName().trim();
+        String normalizedParty = request.getParty().trim();
 
-        Election election = electionRepository.findById(request.getElectionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + request.getElectionId()));
+        validateDuplicateCandidate(normalizedName, normalizedParty, election);
 
         Candidate candidate = new Candidate();
-        candidate.setName(request.getName());
-        candidate.setParty(request.getParty());
+        candidate.setName(normalizedName);
+        candidate.setParty(normalizedParty);
         candidate.setVoteCount(0);
-        candidate.setElection(election); // 🔥 request wala election use hoga
+        candidate.setElection(election);
 
         Candidate savedCandidate = candidateRepository.save(candidate);
-
         return convertToDTO(savedCandidate);
     }
 
     public List<CandidateResponseDTO> getAllCandidates(CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
 
         return candidateRepository.findAll()
                 .stream()
@@ -63,7 +58,7 @@ public class CandidateService {
     }
 
     public CandidateResponseDTO getCandidateById(Long id, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
 
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with id: " + id));
@@ -72,10 +67,8 @@ public class CandidateService {
     }
 
     public List<CandidateResponseDTO> getCandidatesByElectionId(Long electionId, CurrentUserDTO currentUser) {
-        validateAdminOrVoter(currentUser);
-
-        electionRepository.findById(electionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + electionId));
+        authorizationService.requireAdmin(currentUser);
+        electionService.getElectionEntityById(electionId);
 
         return candidateRepository.findByElectionId(electionId)
                 .stream()
@@ -84,32 +77,27 @@ public class CandidateService {
     }
 
     public List<CandidateResponseDTO> getCandidatesForActiveElection(CurrentUserDTO currentUser) {
-        validateAdminOrVoter(currentUser);
+        authorizationService.requireVoter(currentUser);
 
-        ElectionResponseDTO activeElection = electionService.getActiveElection();
+        Election activeElection = electionService.getSingleActiveElectionEntity();
 
-        List<Candidate> candidates = candidateRepository.findByElectionId(activeElection.getId());
-
-        return candidates.stream()
+        return candidateRepository.findByElectionId(activeElection.getId())
+                .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     public CandidateResponseDTO updateCandidate(Long id, CandidateRequestDTO request, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
 
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with id: " + id));
 
-        Election election = electionRepository.findById(request.getElectionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Election not found with id: " + request.getElectionId()));
-
+        Election election = electionService.getElectionEntityById(request.getElectionId());
         String normalizedName = request.getName().trim();
         String normalizedParty = request.getParty().trim();
 
-        if (candidateRepository.existsByPartyIgnoreCaseAndElectionAndIdNot(normalizedParty, election, id)) {
-            throw new VoteNotAllowedException("Party '" + normalizedParty + "' already has another candidate in this election");
-        }
+        validateDuplicateCandidateForUpdate(normalizedName, normalizedParty, election, id);
 
         candidate.setName(normalizedName);
         candidate.setParty(normalizedParty);
@@ -120,7 +108,7 @@ public class CandidateService {
     }
 
     public void deleteCandidate(Long id, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
 
         Candidate candidate = candidateRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with id: " + id));
@@ -128,19 +116,17 @@ public class CandidateService {
         candidateRepository.delete(candidate);
     }
 
-    private void validateAdmin(CurrentUserDTO currentUser) {
-        if (currentUser == null || currentUser.getRole() == null || currentUser.getRole() != Role.ADMIN) {
-            throw new VoteNotAllowedException("Only admin can access this");
+    private void validateDuplicateCandidate(String name, String party, Election election) {
+        if (candidateRepository.existsByNameIgnoreCaseAndPartyIgnoreCaseAndElection(name, party, election)) {
+            throw new InvalidRequestException(
+                    "Candidate '" + name + "' from party '" + party + "' already exists in this election");
         }
     }
 
-    private void validateAdminOrVoter(CurrentUserDTO currentUser) {
-        if (currentUser == null || currentUser.getRole() == null) {
-            throw new VoteNotAllowedException("User not authenticated");
-        }
-
-        if (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.VOTER) {
-            throw new VoteNotAllowedException("Only admin or voter can access this");
+    private void validateDuplicateCandidateForUpdate(String name, String party, Election election, Long candidateId) {
+        if (candidateRepository.existsByNameIgnoreCaseAndPartyIgnoreCaseAndElectionAndIdNot(name, party, election, candidateId)) {
+            throw new InvalidRequestException(
+                    "Candidate '" + name + "' from party '" + party + "' already exists in this election");
         }
     }
 

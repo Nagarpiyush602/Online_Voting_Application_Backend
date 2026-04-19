@@ -14,8 +14,8 @@ public interface CandidateRepository extends JpaRepository<Candidate, Long> {
     List<Candidate> findAllByOrderByVoteCountDesc();
 
     List<Candidate> findByElectionId(Long electionId);
-    
-    boolean existsByPartyIgnoreCaseAndElection(String party,Election election);
-    
-    boolean existsByPartyIgnoreCaseAndElectionAndIdNot(String party,Election election,Long id);
+
+    boolean existsByNameIgnoreCaseAndPartyIgnoreCaseAndElection(String name, String party, Election election);
+
+    boolean existsByNameIgnoreCaseAndPartyIgnoreCaseAndElectionAndIdNot(String name, String party, Election election, Long id);
 }

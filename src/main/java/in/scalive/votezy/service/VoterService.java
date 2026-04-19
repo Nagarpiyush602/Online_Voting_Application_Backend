@@ -18,10 +18,13 @@ import jakarta.transaction.Transactional;
 @Service
 public class VoterService {
 
-    private VoterRepository voterRepository;
+    private final VoterRepository voterRepository;
+    private final AuthorizationService authorizationService;
 
-    public VoterService(VoterRepository voterRepository) {
+    public VoterService(VoterRepository voterRepository,
+                        AuthorizationService authorizationService) {
         this.voterRepository = voterRepository;
+        this.authorizationService = authorizationService;
     }
 
     public VoterResponseDTO registerVoter(VoterRequestDTO dto) {
@@ -42,7 +45,8 @@ public class VoterService {
     }
 
     public List<VoterResponseDTO> getAllVoters(CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
+
         return voterRepository.findAll()
                 .stream()
                 .map(this::mapToResponseDTO)
@@ -50,13 +54,13 @@ public class VoterService {
     }
 
     public VoterResponseDTO getVoterById(Long id, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
         Voter voter = findVoterByIdOrThrow(id);
         return mapToResponseDTO(voter);
     }
 
     public VoterResponseDTO updateVoter(Long id, VoterRequestDTO dto, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
         Voter voter = findVoterByIdOrThrow(id);
 
         String normalizedName = dto.getName().trim();
@@ -75,22 +79,18 @@ public class VoterService {
 
     @Transactional
     public void deleteVoter(Long id, CurrentUserDTO currentUser) {
-        validateAdmin(currentUser);
+        authorizationService.requireAdmin(currentUser);
         Voter voter = findVoterByIdOrThrow(id);
         voterRepository.delete(voter);
     }
 
     public VoterResponseDTO getMyProfile(CurrentUserDTO currentUser) {
-        Voter voter = findVoterByIdOrThrow(currentUser.getUserId());
+        Voter voter = authorizationService.getCurrentUserEntity(currentUser);
         return mapToResponseDTO(voter);
     }
 
     public VoterResponseDTO updateMyProfile(VoterRequestDTO dto, CurrentUserDTO currentUser) {
-        if (currentUser.getRole() != Role.VOTER) {
-            throw new UnauthorizedActionException("Only VOTER can update own profile");
-        }
-
-        Voter voter = findVoterByIdOrThrow(currentUser.getUserId());
+        Voter voter = authorizationService.requireVoter(currentUser);
 
         String normalizedName = dto.getName().trim();
         String normalizedEmail = dto.getEmail().trim();
@@ -109,15 +109,6 @@ public class VoterService {
     private Voter findVoterByIdOrThrow(Long id) {
         return voterRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Voter with id " + id + " not found"));
-    }
-
-    private void validateAdmin(CurrentUserDTO currentUser) {
-        Voter voter = voterRepository.findById(currentUser.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + currentUser.getUserId()));
-
-        if (voter.getRole() != Role.ADMIN) {
-            throw new UnauthorizedActionException("Only ADMIN can perform this action");
-        }
     }
 
     private VoterResponseDTO mapToResponseDTO(Voter voter) {
